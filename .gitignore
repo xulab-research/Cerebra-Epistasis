@@ -1,0 +1,31 @@
+# 默认忽略项目根目录下的所有内容
+/*
+
+# 保留根目录文件
+!/.gitignore
+!/README.md
+!/environment.yml
+
+# 保留三个目录
+!/data/
+!/feature/
+!/model/
+!/figures/
+
+# data：只保留一个示例
+/data/*
+!/data/1M+_to_1M+/
+/data/1M+_to_1M+/*
+!/data/1M+_to_1M+/epistasis_2_Abundance_Faure_2024/
+# feature：全部保留
+
+# model：只保留指定文件或文件夹
+/model/*
+!/model/train*.py
+!/model/joint_train*.py
+!/model/cerebra_epistasis/
+!/model/utils/
+
+# Python cache
+**/__pycache__/
+*.pyc

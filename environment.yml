@@ -1,0 +1,16 @@
+name: cerebra-epistasis
+
+channels:
+  - pytorch
+  - conda-forge
+
+dependencies:
+  - python=3.10
+  - pytorch
+  - numpy
+  - pandas
+  - scipy
+  - transformers
+  - pip
+  - pip:
+      - iterative-stratification
