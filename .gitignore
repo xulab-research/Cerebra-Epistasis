@@ -1,31 +1,31 @@
-# 默认忽略项目根目录下的所有内容
+# Ignore everything in the repository root by default
 /*
 
-# 保留根目录文件
+# Keep root-level project files
 !/.gitignore
 !/README.md
 !/environment.yml
 
-# 保留三个目录
+# Keep selected top-level directories
 !/data/
 !/feature/
 !/model/
 !/figures/
 
-# data：只保留一个示例
+# Data: ignore everything except the selected example assay
 /data/*
 !/data/1M+_to_1M+/
 /data/1M+_to_1M+/*
 !/data/1M+_to_1M+/epistasis_2_Abundance_Faure_2024/
-# feature：全部保留
 
-# model：只保留指定文件或文件夹
+# Model: ignore everything except training scripts and source modules
 /model/*
 !/model/train*.py
 !/model/joint_train*.py
+!/model/e2e_train*.py
 !/model/cerebra_epistasis/
 !/model/utils/
 
-# Python cache
+# Python cache and compiled files
 **/__pycache__/
 *.pyc

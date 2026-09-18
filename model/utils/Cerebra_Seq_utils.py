@@ -1,4 +1,4 @@
-# Standalone inference helpers; no local Cerebra_Seq package is required.
+# Shared inference and training helpers; no local Cerebra_Seq package is required.
 # Extracted from the project's OpenFold/AlphaFold-derived helpers.
 # Arithmetic and PDB formatting are intentionally preserved.
 # See the retained Apache-2.0 notices below.
@@ -18,6 +18,64 @@ import string
 import numpy as np
 import torch
 import torch.nn as nn
+
+# Public helpers and residue constants; imported libraries remain private.
+__all__ = [
+    "rot_matmul",
+    "rot_vec_mul",
+    "identity_rot_mats",
+    "identity_trans",
+    "identity_quats",
+    "quat_to_rot",
+    "quat_multiply",
+    "quat_multiply_by_vec",
+    "invert_rot_mat",
+    "invert_quat",
+    "Rotation",
+    "Rigid",
+    "batched_gather",
+    "Protein",
+    "get_pdb_headers",
+    "to_pdb",
+    "from_prediction",
+    "torsion_angles_to_frames",
+    "frames_and_literature_positions_to_atom14_pos",
+    "hu_model_pred_to_atom14_pos",
+    "make_atom14_masks",
+    "cerebra_autocast",
+    "clear_cuda_cache",
+    "ensure_model_on_device",
+    "offload_model_to_cpu",
+    "offload_esm_models",
+    "should_offload_esm",
+    "read_fasta_sequence",
+    "load_cerebra_model",
+    "build_cerebra_batch",
+    "prepare_cerebra_inputs",
+    "sequence_to_hhblits_ids",
+    "select_anchor_indices",
+    "move_batch_to_model",
+    "NormQuaternion",
+    "QuaternionMM",
+    "NormQuaternionMM",
+    "Rotation2Quaternion",
+    "NormVec",
+    "PsiPhi",
+    "comp_label",
+    "tensor_to_numpy",
+    "AnchorFrameConsensus",
+    "reduce_plddt_output",
+    "parse_fasta_file",
+    "collect_fasta_files",
+    "write_feature_pt",
+    "get_relax_backend",
+    "check_relax_environment",
+    "relax_prediction",
+    "feature_output_complete",
+    "rc",
+    "HHBLITS_AA_TO_ID",
+]
+
 
 
 
@@ -206,7 +264,7 @@ def quat_to_rot(quat: torch.Tensor) -> torch.Tensor:
     return torch.sum(quat, dim=(-3, -4))
 
 
-def rot_to_quat(
+def _rotation_matrix_to_quaternion(
     rot: torch.Tensor,
 ):
     if(rot.shape[-2:] != (3, 3)):
@@ -546,7 +604,7 @@ class Rotation:
             if(self._rot_mats is None):
                 raise ValueError("Both rotations are None")
             else:
-                quats = rot_to_quat(self._rot_mats)
+                quats = _rotation_matrix_to_quaternion(self._rot_mats)
 
         return quats
 
@@ -3080,6 +3138,51 @@ def should_offload_esm(seq_len, offload_length):
     return offload_length is not None and offload_length >= 0 and seq_len > offload_length
 
 
+def read_fasta_sequence(path):
+    """Read one protein sequence and normalize its case."""
+    sequence = "".join(line.strip() for line in Path(path).read_text().splitlines() if not line.startswith(">"))
+    if not sequence:
+        raise ValueError(f"Empty FASTA: {path}")
+    return sequence.upper()
+
+
+def load_cerebra_model(device, checkpoint="model1", revision=None, cache_dir=None, training=False):
+    """Load HF weights, optionally configuring gradient checkpointing for training.
+
+    The caller controls train/eval mode, gradients and checkpoint restoration.
+    """
+    from transformers import AutoConfig, AutoModel
+
+    kwargs = dict(revision=revision, cache_dir=cache_dir, trust_remote_code=True)
+    if training:
+        config = AutoConfig.from_pretrained("Gonglab/Cerebra_Seq", **kwargs)
+        config.core_config["globals"].update(blocks_per_ckpt=1, chunk_size=None, use_lma=False, offload_inference=False)
+        config.core_config["model"]["evoformer_stack"]["blocks_per_ckpt"] = 1
+        kwargs["config"] = config
+    return AutoModel.from_pretrained("Gonglab/Cerebra_Seq", checkpoint=checkpoint, device=str(device), **kwargs).float()
+
+
+def build_cerebra_batch(sequence, esmc, esm3, device, batched=False):
+    """Assemble residue inputs without detaching the embedding tensors."""
+    length = len(sequence)
+    batch = {
+        "X1D_esm_c": esmc.to(device=device, dtype=torch.float32),
+        "X1D_esm3": esm3.to(device=device, dtype=torch.float32),
+        "target_feat": sequence_to_hhblits_ids(sequence, device),
+        "residue_index": torch.arange(1, length + 1, dtype=torch.long, device=device),
+    }
+    return {key: value.unsqueeze(0) for key, value in batch.items()} if batched else batch
+
+
+def prepare_cerebra_inputs(batch, model, clone=False):
+    """Prepare batched model inputs while preserving integer IDs and gradients."""
+    keys = ("target_feat", "residue_index", "X1D_esm3", "X1D_esm_c")
+    feats = {key: batch[key].clone() if clone else batch[key] for key in keys}
+    feats = move_batch_to_model(feats, model)
+    feats["seq_mask"] = torch.ones(feats["X1D_esm_c"].shape[:2], device=next(model.parameters()).device, dtype=next(model.parameters()).dtype)
+    return feats
+
+
 def sequence_to_hhblits_ids(sequence, device):
     return torch.tensor(
         [HHBLITS_AA_TO_ID.get(residue.upper(), 20) for residue in sequence],
@@ -3121,7 +3224,7 @@ def move_batch_to_model(batch, model):
     return converted
 
 
-def normalize_quaternion(quaternion):
+def NormQuaternion(quaternion):
     norm = torch.linalg.vector_norm(quaternion, dim=-1, keepdim=True)
     eps = torch.finfo(quaternion.dtype).eps
     quaternion = quaternion / norm.clamp_min(eps)
@@ -3129,7 +3232,7 @@ def normalize_quaternion(quaternion):
     return sign * quaternion
 
 
-def multiply_quaternions(left, right):
+def QuaternionMM(left, right):
     scalar = left[..., 0] * right[..., 0] - (
         left[..., 1:] * right[..., 1:]
     ).sum(dim=-1)
@@ -3139,6 +3242,96 @@ def multiply_quaternions(left, right):
         + right[..., :1] * left[..., 1:]
     )
     return torch.cat((scalar.unsqueeze(-1), vector), dim=-1)
+
+
+
+def NormQuaternionMM(q1, q2):
+    return NormQuaternion(QuaternionMM(q1, q2))
+
+
+def Rotation2Quaternion(r):
+    """Convert rotation matrices using utils while preserving the original API."""
+    return NormQuaternion(_rotation_matrix_to_quaternion(r))
+
+
+def NormVec(V):
+    eps = 1e-7
+    axis_x = V[:, 2] - V[:, 1]
+    axis_x /= (torch.norm(axis_x, dim=-1).unsqueeze(1) + eps)
+    axis_y = V[:, 0] - V[:, 1]
+    axis_z = torch.cross(axis_x, axis_y, dim=1)
+    axis_z /= (torch.norm(axis_z, dim=-1).unsqueeze(1) + eps)
+    axis_y = torch.cross(axis_z, axis_x, dim=1)
+    axis_y /= (torch.norm(axis_y, dim=-1).unsqueeze(1) + eps)
+    Vec = torch.stack([axis_x, axis_y, axis_z], dim=1)
+    return Vec
+
+
+def PsiPhi(atoms):
+    eps = 1e-7
+    def psi(CA, C, N):
+        a = N[1:] - C[:-1]
+        b = C - CA
+        c = N - CA
+        ab = torch.linalg.cross(a, b[:-1])
+        bc = torch.linalg.cross(b[:-1], c[:-1])
+        ca = torch.linalg.cross(c[:-1], a)
+        
+        cos_ca_b = torch.sum(ca * b[:-1], dim=-1) / (torch.linalg.norm(ca, dim=-1) * torch.linalg.norm(b[:-1], dim=-1) + eps)
+        cospsi = torch.sum(ab * bc, dim=-1)/(torch.linalg.norm(ab, dim=-1) * torch.linalg.norm(bc, dim=-1) + eps)
+        cospsi = np.pi - torch.arccos(torch.clamp(cospsi, max=1, min=-1))
+        return (cos_ca_b / abs(cos_ca_b)) * cospsi
+
+    def phi(CA, C, N):
+        b = C - CA
+        c = N - CA
+        d = C[:-1] - N[1:]
+        bc = torch.linalg.cross(b[1:], c[1:])
+        cd = torch.linalg.cross(c[1:], d)
+        bd = torch.linalg.cross(b[1:], d)
+        cos_bd_c = torch.sum(bd * c[1:], dim=-1) / (torch.linalg.norm(bd, dim=-1) * torch.linalg.norm(c[1:], dim=-1) + eps)
+        cosphi = torch.sum(bc * cd, dim=-1) / (torch.linalg.norm(bc, dim=-1) * torch.linalg.norm(cd, dim=-1) + eps)
+        cosphi = np.pi - torch.arccos(torch.clamp(cosphi, max=1, min=-1))
+        return (cos_bd_c / abs(cos_bd_c)) * cosphi
+    N, CA, C = atoms[:, 2], atoms[:, 0], atoms[:, 1]
+    return torch.stack([psi(CA, C, N), phi(CA, C, N)], dim=1)
+
+
+def comp_label(atoms):
+    eps = 1e-7
+    nres = atoms.shape[0]
+    N_CA_C = atoms[:, [2, 0, 1], :].reshape(-1, 3, 3)
+    rotation = NormVec(N_CA_C)
+    U, _, V = torch.svd(torch.eye(3).unsqueeze(0).permute(0, 2, 1) @ rotation)
+    d = torch.sign(torch.det(U @ V.permute(0, 2, 1)))
+    Id = torch.eye(3).repeat(nres, 1, 1)
+    Id[:, 2, 2] = d
+    r = V @ (Id @ U.permute(0, 2, 1))
+    q = Rotation2Quaternion(r)
+    q_1 = torch.cat([q[..., 0].unsqueeze(-1), -q[..., 1:]], dim=-1)
+    QAll = NormQuaternionMM(q.unsqueeze(1).repeat(1, nres, 1), q_1.unsqueeze(0).repeat(nres, 1, 1))
+    
+    QAll[..., 0][torch.isnan(QAll[..., 0])] = 1.
+    QAll[torch.isnan(QAll)] = 0.
+    QAll = NormQuaternion(QAll)
+    
+    xyz_CA = torch.einsum('a b i, a i j -> a b j', atoms[:, 0].unsqueeze(0) - atoms[:, 0].unsqueeze(1), r)
+    xyz_C  = torch.einsum('a b i, a i j -> a b j', atoms[:, 1].unsqueeze(0) - atoms[:, 0].unsqueeze(1), r)
+    xyz_N  = torch.einsum('a b i, a i j -> a b j', atoms[:, 2].unsqueeze(0) - atoms[:, 0].unsqueeze(1), r)
+    xyz_CB = torch.einsum('a b i, a i j -> a b j', atoms[:, 3].unsqueeze(0) - atoms[:, 0].unsqueeze(1), r)
+    
+    CA_C_N_CB = torch.stack([xyz_CA, xyz_C, xyz_N, xyz_CB], dim=-2)
+    
+    CA = atoms[:, 0].unsqueeze(0) - atoms[:, 0].unsqueeze(1)
+    r_CA = torch.sqrt((CA * CA).sum(-1) + eps)
+    CB_dist = atoms[:, 3, :].unsqueeze(0) - atoms[:, 3, :].unsqueeze(1)
+    CB_dist = torch.sqrt((CB_dist * CB_dist).sum(-1))
+    CB_dist = (CB_dist*2 - 7).long()
+    CB_dist = CB_dist.clamp(min=0, max=35)
+    # CB_dist = (torch.stack(CB_dist) <= 8).long().view(-1)
+    psi_phi = PsiPhi(atoms)
+
+    return CA_C_N_CB, CB_dist, r_CA, QAll, psi_phi
 
 
 def _kabsch_align(mobile, target):
@@ -3195,10 +3388,10 @@ def AnchorFrameConsensus(outputs, main_anchor_id, top_k=3):
     frame_rotations = torch.as_tensor(
         np.stack(frame_rotations), device=quaternions.device, dtype=consensus_dtype
     )
-    frame_quaternions = normalize_quaternion(rot_to_quat(frame_rotations))[
+    frame_quaternions = Rotation2Quaternion(frame_rotations)[
         None, :, None, :
     ]
-    combined_quaternions = multiply_quaternions(
+    combined_quaternions = QuaternionMM(
         frame_quaternions, quaternions.to(dtype=consensus_dtype)
     )
     combined_quaternions = combined_quaternions[0].permute(1, 0, 2)
@@ -3207,7 +3400,7 @@ def AnchorFrameConsensus(outputs, main_anchor_id, top_k=3):
     )
 
     return (
-        normalize_quaternion(consensus_quaternion.unsqueeze(0)),
+        NormQuaternion(consensus_quaternion.unsqueeze(0)),
         consensus_translation.unsqueeze(0),
     )
 

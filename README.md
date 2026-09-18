@@ -18,7 +18,7 @@ Cerebra-Epistasis is a PyTorch implementation of a composable, structure- and ep
 
 ```text
 data/        benchmark settings organized by protein assay, including variant data, WT sequences, and precomputed features
-feature/     code for generating ESM-2 and Cerebra-Seq features
+feature/     code for generating ESM-2 and Cerebra-Seq features for Cerebra-Epistasis,and ESMC,ESM3 features for Cerebra-Seq
 model/       Cerebra-Epistasis model code and training scripts
 ```
 

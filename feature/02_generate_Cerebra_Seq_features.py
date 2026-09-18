@@ -1,9 +1,8 @@
-import argparse
 import sys
-from contextlib import nullcontext
-from pathlib import Path
-
+import argparse
 import torch
+from pathlib import Path
+from contextlib import nullcontext
 from transformers import AutoModel, AutoTokenizer
 
 # Allow direct execution from any working directory.
@@ -11,22 +10,10 @@ BASE_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = BASE_DIR.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from model.utils.Cerebra_Seq_utils import (
-    AnchorFrameConsensus,
-    cerebra_autocast,
-    clear_cuda_cache,
-    ensure_model_on_device,
-    hu_model_pred_to_atom14_pos,
-    make_atom14_masks,
-    move_batch_to_model,
-    rc,
-    select_anchor_indices,
-    sequence_to_hhblits_ids,
-)
+from model.utils.Cerebra_Seq_utils import *
 
 DATA_ROOT = PROJECT_ROOT / "data"
 
-CEREBRA_REPO = "Gonglab/Cerebra_Seq"
 ESMC_REPO = "biohub/ESMC-600M-hf"
 ESM3_REPO = "Synthyra/ESM3_small"
 
@@ -40,13 +27,6 @@ OUTPUT_FILENAME = "embedding_Cerebra_Seq_for_Cerebra_Epistasis.pt"
 def autocast_context(device):
     device = torch.device(device)
     return torch.autocast("cuda", dtype=torch.bfloat16) if device.type == "cuda" else nullcontext()
-
-
-def read_fasta(path):
-    sequence = "".join(line.strip() for line in path.read_text().splitlines() if not line.startswith(">"))
-    if not sequence:
-        raise ValueError(f"Empty FASTA: {path}")
-    return sequence.upper()
 
 
 def load_models(args):
@@ -80,18 +60,10 @@ def load_models(args):
         trust_remote_code=True,
     )
 
-    cerebra_model = (
-        AutoModel.from_pretrained(
-            CEREBRA_REPO,
-            trust_remote_code=True,
-            checkpoint=args.checkpoint,
-            device=args.device,
-            revision=args.revision,
-            cache_dir=args.hf_cache_dir,
-        )
-        .eval()
-        .float()
-    )
+    cerebra_model = load_cerebra_model(
+        args.device, checkpoint=args.checkpoint, revision=args.revision,
+        cache_dir=args.hf_cache_dir,
+    ).eval()
 
     return esm3_model, esmc_model, cerebra_model, esmc_tokenizer
 
@@ -120,13 +92,7 @@ def generate_sequence_features(sequence, esm3_model, esmc_model, esmc_tokenizer,
     esm3_model.cpu()
     clear_cuda_cache()
 
-    length = len(sequence)
-    return {
-        "X1D_esm_c": embeddings["esmc"].unsqueeze(0),
-        "X1D_esm3": embeddings["esm3"].unsqueeze(0),
-        "target_feat": sequence_to_hhblits_ids(sequence, device).unsqueeze(0),
-        "residue_index": torch.arange(1, length + 1, dtype=torch.long, device=device).unsqueeze(0),
-    }
+    return build_cerebra_batch(sequence, embeddings["esmc"], embeddings["esm3"], device, batched=True)
 
 
 @torch.inference_mode()
@@ -135,13 +101,7 @@ def run_cerebra(batch, model, conf_anchor_chunk_size=24, num_iters=4):
     batch = move_batch_to_model(batch, model)
     anchors = select_anchor_indices(batch["X1D_esm_c"].shape[1])
 
-    feats = {
-        "seq_mask": torch.ones(batch["X1D_esm_c"].shape[:2], device=model_device, dtype=next(model.parameters()).dtype),
-        "residue_index": batch["residue_index"],
-        "X1D_esm_c": batch["X1D_esm_c"],
-        "X1D_esm3": batch["X1D_esm3"],
-        "target_feat": batch["target_feat"],
-    }
+    feats = prepare_cerebra_inputs(batch, model)
 
     prevs = [None, None, None]
     outputs = None
@@ -220,7 +180,7 @@ def run(args):
             print(f"[skip] {protein_dir.parent.name}/{protein_dir.name}")
             continue
 
-        proteins.append((protein_dir, read_fasta(fasta_path)))
+        proteins.append((protein_dir, read_fasta_sequence(fasta_path)))
 
     if not proteins:
         print("No pending proteins.")
