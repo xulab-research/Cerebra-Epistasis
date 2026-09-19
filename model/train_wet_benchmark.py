@@ -388,7 +388,7 @@ def build_parser():
     parser.add_argument("--val_fraction", type=float, default=0.1)
     parser.add_argument("--epochs", type=int, nargs="+", default=[150, 200, 250])
     parser.add_argument("--lr", type=float, nargs="+", default=[1e-4, 5e-4])
-    parser.add_argument("--rankH", type=int, nargs="+", default=[64, 128, 320])
+    parser.add_argument("--rankH", type=int, nargs="+", default=[64,320])
     parser.add_argument("--min_lr", type=float, default=1e-6)
     parser.add_argument("--adj_dim", type=int, default=32)
     parser.add_argument("--mlp_hidden_dim", type=int, default=256)
