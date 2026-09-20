@@ -19,16 +19,19 @@
 !/model/utils/utils_func.py
 !/model/utils/metrics.py
 !/model/utils/calculate_nbodys_mutation_effect.py
+!/model/train.py
 
 # Data: ignore all datasets
 !/data/
 /data/*
-!/data/.gitkeep
+!/data/data.csv
+!/data/wt.fasta
+!/data/embedding*
 
 # Feature: keep selected scripts
-!/feature/
-/feature/*
-!/feature/03_generate_ESMC_ESM3_structure_features.py
+!/generate_features/
+/generate_features/*
+!/generate_features/03_generate_ESMC_ESM3_structure_features.py
 
 !/figures/
 
