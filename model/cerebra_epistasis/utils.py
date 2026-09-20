@@ -252,13 +252,6 @@ def cache_dir(dirname, maxsize=128):
     return decorator
 
 
-def row_zscore(x, eps=1e-8):
-    # x: [L,20]
-    mu = x.mean(dim=-1, keepdim=True)
-    std = x.std(dim=-1, keepdim=True, unbiased=False)
-    return (x - mu) / (std + eps)
-
-
 def rbf_encode(dist, num_rbf=16, rbf_min=0.0, rbf_max=20.0):
     # dist: [..., 1]
     rbf_centers = torch.linspace(rbf_min, rbf_max, num_rbf, device=dist.device)
@@ -272,30 +265,9 @@ def safe_unit(v: torch.Tensor, eps: float = 1e-8) -> torch.Tensor:
 
 
 def virtual_cb_from_n_ca_c(N: torch.Tensor, CA: torch.Tensor, C: torch.Tensor) -> torch.Tensor:
-    """
-    给 GLY 构造 virtual Cβ（坐标），常用公式：
-    b = CA - N
-    c = C - CA
-    a = cross(b, c)
-    CB = -0.58273431*a + 0.56802827*b - 0.54067466*c + CA
-    """
+
     b = CA - N
     c = C - CA
     a = torch.cross(b, c, dim=-1)
     CB = (-0.58273431 * a) + (0.56802827 * b) + (-0.54067466 * c) + CA
     return CB
-
-
-def rank_dropout(U, p: float, training: bool):
-    """
-    U: [..., r]
-    drop whole rank channels (last dim).
-    """
-    if (not training) or (p <= 0.0):
-        return U
-    r = U.shape[-1]
-
-    # one mask shared across all positions (most stable)
-    mask = (torch.rand(r, device=U.device) > p).to(U.dtype)  # [r]
-    mask = mask / (1.0 - p)  # keep expectation
-    return U * mask  # broadcast on last dim

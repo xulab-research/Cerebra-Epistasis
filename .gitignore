@@ -1,31 +1,34 @@
-# Ignore everything in the repository root by default
+# Ignore everything by default
 /*
 
-# Keep root-level project files
+# Root files
 !/.gitignore
 !/README.md
 !/environment.yml
 
-# Keep selected top-level directories
-!/data/
-!/feature/
+# Model
 !/model/
-!/figures/
-
-# Data: ignore everything except the selected example assay
-/data/*
-!/data/1M+_to_1M+/
-/data/1M+_to_1M+/*
-!/data/1M+_to_1M+/epistasis_2_Abundance_Faure_2024/
-
-# Model: ignore everything except training scripts and source modules
 /model/*
-!/model/train*.py
-!/model/joint_train*.py
-!/model/e2e_train*.py
 !/model/cerebra_epistasis/
 !/model/utils/
 
-# Python cache and compiled files
+# Utils: keep selected files
+/model/utils/*
+!/model/utils/train.py
+!/model/utils/__init__.py
+!/model/utils/utils_func.py
+!/model/utils/metrics.py
+!/model/utils/calculate_nbodys_mutation_effect.py
+
+# Data: ignore all datasets
+!/data/
+/data/*
+
+# Feature: keep selected scripts
+!/feature/
+/feature/*
+!/feature/03_generate_ESMC_ESM3_structure_features.py
+
+# Ignore Python cache
 **/__pycache__/
 *.pyc

@@ -1,5 +1,4 @@
 import torch
-import torch.nn as nn
 from torch.autograd.function import Function
 from torch.utils.checkpoint import get_device_states, set_device_states
 
@@ -66,7 +65,7 @@ def values(d):
 
 
 # following example for saving and setting rng here https://pytorch.org/docs/stable/_modules/torch/utils/checkpoint.html
-class Deterministic(nn.Module):
+class Deterministic(torch.nn.Module):
     def __init__(self, net):
         super().__init__()
         self.net = net
@@ -101,7 +100,7 @@ class Deterministic(nn.Module):
 
 # heavily inspired by https://github.com/RobinBruegger/RevTorch/blob/master/revtorch/revtorch.py
 # once multi-GPU is confirmed working, refactor and send PR back to source
-class ReversibleBlock(nn.Module):
+class ReversibleBlock(torch.nn.Module):
     def __init__(self, f, g):
         super().__init__()
         self.f = Deterministic(f)
@@ -199,7 +198,7 @@ class _ReversibleFunction(Function):
         return dy, None, None
 
 
-class SequentialSequence(nn.Module):
+class SequentialSequence(torch.nn.Module):
     def __init__(self, blocks):
         super().__init__()
         self.blocks = blocks
@@ -211,10 +210,10 @@ class SequentialSequence(nn.Module):
         return x
 
 
-class ReversibleSequence(nn.Module):
+class ReversibleSequence(torch.nn.Module):
     def __init__(self, blocks):
         super().__init__()
-        self.blocks = nn.ModuleList([ReversibleBlock(f, g) for (f, g) in blocks])
+        self.blocks = torch.nn.ModuleList([ReversibleBlock(f, g) for (f, g) in blocks])
 
     def forward(self, x, **kwargs):
         blocks = self.blocks
