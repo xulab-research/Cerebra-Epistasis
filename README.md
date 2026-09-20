@@ -5,13 +5,13 @@
 Cerebra-Epistasis is a PyTorch implementation of a composable, structure- and epistasis-aware framework for protein fitness landscape modeling. The model encodes a wild-type protein once to construct a reusable mutation atlas, from which single-mutation effects and epistatic representations can be assembled to predict arbitrary-order mutant fitness without repeatedly encoding individual mutant sequences.
 
 <p align="center">
-  <a href="figures/figure1.pdf">
-    <img src="figures/figure1.png" width="95%">
+  <a href="assets/overview.svg">
+    <img src="assets/overview.svg" width="95%">
   </a>
 </p>
 
 <p align="center">
-  <i>Overview of the Cerebra-Epistasis framework. Click the figure to view the PDF version.</i>
+  <i>Overview of the Cerebra-Epistasis framework. Click the figure to view the full-size SVG.</i>
 </p>
 
 ## Repository structure
