@@ -59,8 +59,9 @@ fold_id
 Cerebra-Epistasis uses **ESM-2 650M** sequence representations and **Cerebra-Seq** structural representations derived from the wild-type sequence.
 
 ```bash
-python generate_features/01_generate_ESM2_650M_embedding.py
-python generate_features/02_generate_Cerebra_Seq_features.py
+cd generate_features
+python 01_generate_ESM2_650M_embedding.py
+python 02_generate_Cerebra_Seq_features.py
 ```
 
 The generated files are:
@@ -75,12 +76,13 @@ Cerebra-Seq is available on [Hugging Face](https://huggingface.co/GongLab-THU/Ce
 ## Training and prediction
 
 ```bash
-python model/train.py
+cd model
+python train.py
 ```
 
 Training logs and checkpoints are written to `model/training_log/`, and predictions to `model/output/`.
 
-Use `python model/train.py --help` to view available arguments.
+Use `python train.py --help` to view available arguments.
 
 ## Resources
 
