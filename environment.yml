@@ -9,8 +9,9 @@ dependencies:
   - pytorch
   - numpy
   - pandas
-  - scipy
   - transformers
+  - einops
+  - filelock
   - pip
   - pip:
       - iterative-stratification
