@@ -1,7 +1,3 @@
-# sqrt_scale=True:
-# y_hat = sum_i s_i + g(sum_i u_i / sqrt(m))
-# pred_epi = g(sum_i u_i / sqrt(m)) - sum_i g(u_i)
-
 import torch
 
 import pandas as pd

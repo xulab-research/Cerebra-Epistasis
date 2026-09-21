@@ -2,9 +2,8 @@ import torch
 import random
 import pandas as pd
 import numpy as np
-import re
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 from iterstrat.ml_stratifiers import (
     MultilabelStratifiedKFold,
 )
@@ -42,16 +41,14 @@ def to_gpu(obj, device):
 
 
 def get_position_matrix(mut_list: List[str]) -> np.ndarray:
-    # collect all unique positions (e.g., "A12G" -> 12)
-    positions = sorted({int(re.search(r"\d+", part).group()) for m in mut_list for part in m.split(",") if re.search(r"\d+", part)})
+    positions = sorted({int(part[1:-1]) for m in mut_list for part in m.split(",")})
     pos2i = {p: i for i, p in enumerate(positions)}
 
     Y = np.zeros((len(mut_list), len(positions)), dtype=np.int8)
     for i, m in enumerate(mut_list):
         for part in m.split(","):
-            mo = re.search(r"\d+", part)
-            if mo:
-                Y[i, pos2i[int(mo.group())]] = 1
+            Y[i, pos2i[int(part[1:-1])]] = 1
+
     return Y
 
 
