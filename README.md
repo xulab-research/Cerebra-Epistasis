@@ -93,7 +93,6 @@ Use `python train.py --help` to view available arguments.
 | Benchmark datasets and precomputed features | [Zenodo](https://doi.org/10.5281/zenodo.22899137) |
 | Cerebra-Epistasis and baseline predictions | [Zenodo](https://doi.org/10.5281/zenodo.22899137) |
 
-**Zenodo:** coming soon.
 
 ## Citation
 
