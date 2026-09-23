@@ -88,10 +88,10 @@ Use `python train.py --help` to view available arguments.
 
 | Resource | Location |
 |---|---|
-| Cerebra-Epistasis source code | GitHub |
+| Cerebra-Epistasis source code | [GitHub](https://github.com/xulab-research/Cerebra-Epistasis) |
 | Cerebra-Seq | [Hugging Face](https://huggingface.co/GongLab-THU/Cerebra-Seq) |
-| Benchmark datasets and precomputed features | Zenodo |
-| Benchmark checkpoints and baseline predictions | Zenodo |
+| Benchmark datasets and precomputed features | [Zenodo](https://doi.org/10.5281/zenodo.22899138) |
+| Cerebra-Epistasis and baseline predictions | [Zenodo](https://doi.org/10.5281/zenodo.22899138) |
 
 **Zenodo:** coming soon.
 
