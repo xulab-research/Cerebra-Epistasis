@@ -101,7 +101,7 @@ If you find Cerebra-Epistasis useful, please cite:
 
 ```bibtex
 @article{cerebra_epistasis,
-  title   = {From single-sequence structure prediction to protein fitness landscapes through a composable, epistasis-aware mutation atlas},
+  title   = {From single-sequence structure prediction to protein fitness landscape through a composable, epistasis-aware mutation atlas},
   author  = {...},
   journal = {...},
   year    = {2026}
