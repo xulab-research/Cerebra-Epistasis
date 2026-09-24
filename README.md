@@ -1,8 +1,8 @@
 # Cerebra-Epistasis
 
-[![Python 3.10](https://img.shields.io/badge/Python-3.10-3776AB?logo=python&logoColor=white)](https://www.python.org/downloads/release/python-3100/)
+[![Python 3.10](https://img.shields.io/badge/Python-3.10-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue?logo=apache&logoColor=white)](https://github.com/xulab-research/Cerebra-Epistasis/blob/main/LICENSE)
-[![Hugging Face](https://img.shields.io/badge/Hugging%20Face-Cerebra--Seq-FFD21E?logo=huggingface&logoColor=black)](https://huggingface.co/GongLab-THU/Cerebra-Seq)
+[![Hugging Face](https://img.shields.io/badge/Hugging%20Face-Cerebra--Seq-FFD21E?logo=huggingface&logoColor=FFD21E)](https://huggingface.co/GongLab-THU/Cerebra-Seq)
 [![Zenodo](https://zenodo.org/badge/DOI/10.5281/zenodo.22899137.svg)](https://doi.org/10.5281/zenodo.22899137)
 
 Cerebra-Epistasis is a composable, structure- and epistasis-aware framework for protein fitness landscape modeling. It encodes a wild-type protein once to construct a reusable mutation atlas, from which single-mutation effects and epistatic representations can be assembled to predict arbitrary-order mutant fitness.
@@ -33,12 +33,16 @@ Cerebra-Epistasis/
 │   └── train.py
 ├── assets/
 ├── environment.yml
+├── LICENSE
 └── README.md
 ```
 
 ## Installation
 
 ```bash
+git clone https://github.com/xulab-research/Cerebra-Epistasis.git
+cd Cerebra-Epistasis
+
 conda env create -f environment.yml
 conda activate cerebra-epistasis
 ```
@@ -55,7 +59,7 @@ label
 fold_id
 ```
 
-`mutation_name` specifies the amino-acid substitution(s), with multiple substitutions separated by commas. `label` contains the experimentally measured fitness value. `fold_id=0` is used for training and `fold_id=1` for testing.
+`mutation_name` specifies the amino-acid substitution(s) using 0-based residue indexing, with multiple substitutions separated by commas. `label` contains the experimentally measured fitness value. `fold_id=0` is used for training and `fold_id=1` for testing.
 
 ## Feature generation
 
@@ -93,8 +97,7 @@ Use `python train.py --help` to view available arguments.
 |---|---|
 | Cerebra-Epistasis source code | [GitHub](https://github.com/xulab-research/Cerebra-Epistasis) |
 | Cerebra-Seq | [Hugging Face](https://huggingface.co/GongLab-THU/Cerebra-Seq) |
-| Benchmark datasets and precomputed features | [Zenodo](https://doi.org/10.5281/zenodo.22899137) |
-| Cerebra-Epistasis and baseline predictions | [Zenodo](https://doi.org/10.5281/zenodo.22899137) |
+| Cerebra-Epistasis code, benchmark datasets, precomputed features, and prediction outputs | [Zenodo](https://doi.org/10.5281/zenodo.22899137) |
 
 
 ## Citation
