@@ -17,6 +17,28 @@ Cerebra-Epistasis is a composable, structure- and epistasis-aware framework for 
   </a>
 </p>
 
+## Overview
+
+Cerebra-Epistasis is a structure- and epistasis-aware framework for protein fitness landscape modeling. It encodes a wild-type protein once using sequence and structural representations to construct a reusable mutation atlas, enabling efficient prediction of fitness and epistatic effects for arbitrary-order mutants.
+
+The framework integrates ESM-2 sequence representations with Cerebra-Seq-derived residue, pairwise, and atomic-coordinate features through an SE(3)-equivariant network. It explicitly separates mutation-specific contributions from epistatic interactions and assembles the corresponding mutation representations without repeatedly encoding each candidate variant.
+
+### Key Capabilities
+
+- **Structure-aware fitness prediction**: Integrate ESM-2 sequence representations with Cerebra-Seq-derived residue, pairwise, and side-chain-resolved structural features for mutation-effect prediction.
+- **Explicit epistasis modeling**: Decompose multi-mutant fitness into mutation-specific contributions and a learned epistatic component, with optional pairwise epistasis supervision during training.
+- **Reusable mutation atlas**: Encode the wild-type protein once to construct mutation-indexed single-mutation scores and epistasis representations covering all amino-acid substitutions.
+- **Arbitrary-order mutant assembly**: Retrieve and combine precomputed mutation-specific representations through permutation-invariant assembly to predict single- and multi-mutant fitness.
+- **Efficient landscape-scale inference**: Reuse the wild-type mutation atlas across candidate variants, avoiding repeated sequence and structure encoding during large-scale mutant evaluation.
+
+## Installation
+
+```bash
+git clone https://github.com/xulab-research/Cerebra-Epistasis.git
+cd Cerebra-Epistasis
+pip install -e .
+```
+
 ## Repository structure
 
 ```text
@@ -37,17 +59,9 @@ Cerebra-Epistasis/
 └── README.md
 ```
 
-## Installation
+## Quick Start
 
-```bash
-git clone https://github.com/xulab-research/Cerebra-Epistasis.git
-cd Cerebra-Epistasis
-
-conda env create -f environment.yml
-conda activate cerebra-epistasis
-```
-
-## Input data
+### Input data
 
 Place `data.csv` and `wt.fasta` under `data/`.
 
@@ -61,7 +75,7 @@ fold_id
 
 `mutation_name` specifies the amino-acid substitution(s) using 0-based residue indexing, with multiple substitutions separated by commas. `label` contains the experimentally measured fitness value. `fold_id=0` is used for training and `fold_id=1` for testing.
 
-## Feature generation
+### Feature generation
 
 Cerebra-Epistasis uses **ESM-2 650M** sequence representations and **Cerebra-Seq** structural representations derived from the wild-type sequence.
 
@@ -80,7 +94,7 @@ data/embedding_Cerebra_Seq_for_Cerebra_Epistasis.pt
 
 Cerebra-Seq is available on [Hugging Face](https://huggingface.co/GongLab-THU/Cerebra-Seq).
 
-## Training and prediction
+### Training and prediction
 
 ```bash
 cd model
@@ -91,7 +105,7 @@ Training logs and checkpoints are written to `model/training_log/`, and predicti
 
 Use `python train.py --help` to view available arguments.
 
-## Resources
+### Resources
 
 | Resource | Location |
 |---|---|
@@ -102,16 +116,16 @@ Use `python train.py --help` to view available arguments.
 
 ## Citation
 
-If you find Cerebra-Epistasis useful, please cite:
+If you use Cerebra-Epistasis in your research, please cite:
 
 ```bibtex
 @article{cerebra_epistasis,
   title   = {From single-sequence structure prediction to protein fitness landscape through a composable, epistasis-aware mutation atlas},
-  author  = {...},
+  author  = {Weizhe Wang, Zimu Yu, Endi Yang, Ziyu Shi, Shize Yu, Jian Hu, Yunxin Xu, Haipeng Gong},
   journal = {bioRxiv},
   year    = {2026},
-  doi     = {10.64898/2026.09.06.749687},
-  url     = {https://doi.org/10.64898/2026.09.06.749687}
+  doi     = {10.64898/2026.09.24.753701},
+  url     = {https://doi.org/10.64898/2026.09.24.753701}
 }
 ```
 

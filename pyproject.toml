@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=77","wheel"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "cerebra-epistasis"
+dynamic = ["version"]
+description = "A structure- and epistasis-aware framework for protein fitness landscape modeling."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Weizhe Wang" },
+    { name = "Zimu Yu" },
+    { name = "Endi Yang" },
+    { name = "Ziyu Shi" },
+    { name = "Shize Yu" },
+    { name = "Jian Hu" },
+    { name = "Yunxin Xu" },
+    { name = "Haipeng Gong" },
+]
+
+dependencies = [
+    "torch==2.12.0",
+    "pandas==3.0.3",
+    "transformers==5.17.0",
+    "einops==0.8.2",
+    "filelock==3.29.0",
+    "iterative-stratification==0.19",
+]
+
+
+[project.urls]
+Homepage = "https://github.com/xulab-research/Cerebra-Epistasis"
+Repository = "https://github.com/xulab-research/Cerebra-Epistasis"
+Preprint = "https://doi.org/10.64898/2026.09.24.753701"
+"Cerebra-Seq" = "https://huggingface.co/GongLab-THU/Cerebra-Seq"
+Zenodo = "https://doi.org/10.5281/zenodo.22899137"
+
+
+[tool.setuptools.packages.find]
+where = ["model"]
+include = ["cerebra_epistasis*","utils*"]
