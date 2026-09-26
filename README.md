@@ -1,20 +1,20 @@
 # Cerebra-Epistasis
 
-[![Python 3.10](https://img.shields.io/badge/Python-3.10-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Python >= 3.10](https://img.shields.io/badge/Python-%E2%89%A5%203.10-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue?logo=apache&logoColor=white)](https://github.com/xulab-research/Cerebra-Epistasis/blob/main/LICENSE)
-[![Hugging Face](https://img.shields.io/badge/Hugging%20Face-Cerebra--Seq-FFD21E?logo=huggingface&logoColor=FFD21E)](https://huggingface.co/GongLab-THU/Cerebra-Seq)
-[![Zenodo](https://zenodo.org/badge/DOI/10.5281/zenodo.22899137.svg)](https://doi.org/10.5281/zenodo.22899137)
+[![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Cerebra--Seq-yellow)](https://huggingface.co/GongLab-THU/Cerebra-Seq)
+[![Zenodo](https://img.shields.io/badge/Zenodo-10.5281%2Fzenodo.22899137-1682D4?logo=zenodo&logoColor=white)](https://doi.org/10.5281/zenodo.22899137)
+[![DOI](https://img.shields.io/badge/DOI-10.64898%2F2026.09.24.753701-blue?logo=doi&logoColor=white)](https://doi.org/10.64898/2026.09.24.753701)
+
 
 Cerebra-Epistasis is a composable, structure- and epistasis-aware framework for protein fitness landscape modeling. It encodes a wild-type protein once to construct a reusable mutation atlas, from which single-mutation effects and epistatic representations can be assembled to predict arbitrary-order mutant fitness.
+
+**Preprint**: https://doi.org/10.64898/2026.09.06.749687
 
 <p align="center">
   <a href="assets/overview.svg">
     <img src="assets/overview.svg" width="100%">
   </a>
-</p>
-
-<p align="center">
-  <i>Overview of the Cerebra-Epistasis framework.</i>
 </p>
 
 ## Repository structure
@@ -108,8 +108,10 @@ If you find Cerebra-Epistasis useful, please cite:
 @article{cerebra_epistasis,
   title   = {From single-sequence structure prediction to protein fitness landscape through a composable, epistasis-aware mutation atlas},
   author  = {...},
-  journal = {...},
-  year    = {2026}
+  journal = {bioRxiv},
+  year    = {2026},
+  doi     = {10.64898/2026.09.06.749687},
+  url     = {https://doi.org/10.64898/2026.09.06.749687}
 }
 ```
 
@@ -117,4 +119,12 @@ If you find Cerebra-Epistasis useful, please cite:
 
 This project is licensed under the Apache License 2.0.
 
-Datasets and external pretrained models remain subject to their respective licenses and terms of use.
+Unless otherwise stated, the source code, model architecture, training scripts,
+inference scripts, and released model weights/checkpoints are licensed under
+Apache-2.0.
+
+Datasets used in this project may be subject to their original licenses and
+terms of use. Please refer to the corresponding dataset sources for details.
+
+This software is provided for research purposes and is not intended for clinical
+diagnosis, medical decision-making, or direct therapeutic use.
