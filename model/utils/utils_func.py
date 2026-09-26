@@ -4,9 +4,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 from typing import List, Tuple
-from iterstrat.ml_stratifiers import (
-    MultilabelStratifiedKFold,
-)
+from iterstrat.ml_stratifiers import MultilabelStratifiedKFold
 
 data_root = Path(__file__).resolve().parents[1] / "data"
 

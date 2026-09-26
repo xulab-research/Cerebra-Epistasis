@@ -1,10 +1,11 @@
+import torch
+from .utils import cache
+from operator import mul
 from math import pi, sqrt
 from functools import reduce
-from operator import mul
-import torch
 
 from functools import lru_cache
-from .utils import cache
+
 
 # constants
 
