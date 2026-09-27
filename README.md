@@ -1,11 +1,12 @@
 # Cerebra-Epistasis
 
-[![Python >= 3.10](https://img.shields.io/badge/Python-%E2%89%A5%203.10-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue?logo=apache&logoColor=white)](https://github.com/xulab-research/Cerebra-Epistasis/blob/main/LICENSE)
-[![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Cerebra--Seq-yellow)](https://huggingface.co/GongLab-THU/Cerebra-Seq)
-[![Zenodo](https://img.shields.io/badge/Zenodo-10.5281%2Fzenodo.22899137-1682D4?logo=zenodo&logoColor=white)](https://doi.org/10.5281/zenodo.22899137)
-[![DOI](https://img.shields.io/badge/DOI-10.64898%2F2026.09.24.753701-blue?logo=doi&logoColor=white)](https://doi.org/10.64898/2026.09.24.753701)
+[![Python version badge](https://img.shields.io/badge/Python-%E2%89%A5%203.10-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![License badge](https://img.shields.io/badge/License-Apache_2.0-blue?logo=apache&logoColor=white)](https://github.com/xulab-research/Cerebra-Epistasis/blob/main/LICENSE)
+[![Hugging Face badge](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Cerebra--Seq-yellow)](https://huggingface.co/GongLab-THU/Cerebra-Seq)
+[![Zenodo badge](https://img.shields.io/badge/Zenodo-10.5281%2Fzenodo.22899137-1682D4?logo=zenodo&logoColor=white)](https://doi.org/10.5281/zenodo.22899137)
+[![DOI badge](https://img.shields.io/badge/DOI-10.64898%2F2026.09.24.753701-blue?logo=doi&logoColor=white)](https://doi.org/10.64898/2026.09.24.753701)
 
+## Overview
 
 Cerebra-Epistasis is a composable, structure- and epistasis-aware framework for protein fitness landscape modeling. It encodes a wild-type protein once to construct a reusable mutation atlas, from which single-mutation effects and epistatic representations can be assembled to predict arbitrary-order mutant fitness.
 
@@ -17,27 +18,15 @@ Cerebra-Epistasis is a composable, structure- and epistasis-aware framework for 
   </a>
 </p>
 
-## Overview
-
-Cerebra-Epistasis is a structure- and epistasis-aware framework for protein fitness landscape modeling. It encodes a wild-type protein once using sequence and structural representations to construct a reusable mutation atlas, enabling efficient prediction of fitness and epistatic effects for arbitrary-order mutants.
-
-The framework integrates ESM-2 sequence representations with Cerebra-Seq-derived residue, pairwise, and atomic-coordinate features through an SE(3)-equivariant network. It explicitly separates mutation-specific contributions from epistatic interactions and assembles the corresponding mutation representations without repeatedly encoding each candidate variant.
-
-### Key Capabilities
-
-- **Structure-aware fitness prediction**: Integrate ESM-2 sequence representations with Cerebra-Seq-derived residue, pairwise, and side-chain-resolved structural features for mutation-effect prediction.
-- **Explicit epistasis modeling**: Decompose multi-mutant fitness into mutation-specific contributions and a learned epistatic component, with optional pairwise epistasis supervision during training.
-- **Reusable mutation atlas**: Encode the wild-type protein once to construct mutation-indexed single-mutation scores and epistasis representations covering all amino-acid substitutions.
-- **Arbitrary-order mutant assembly**: Retrieve and combine precomputed mutation-specific representations through permutation-invariant assembly to predict single- and multi-mutant fitness.
-- **Efficient landscape-scale inference**: Reuse the wild-type mutation atlas across candidate variants, avoiding repeated sequence and structure encoding during large-scale mutant evaluation.
-
 ## Installation
 
+Clone the repository and install the required dependencies:
 ```bash
 git clone https://github.com/xulab-research/Cerebra-Epistasis.git
 cd Cerebra-Epistasis
-pip install -e .
+pip install -r requirements.txt
 ```
+The dependency versions are pinned to those used in our tested environment to ensure reproducibility. Newer versions may also be compatible.
 
 ## Repository structure
 
@@ -54,10 +43,22 @@ Cerebra-Epistasis/
 │   ├── utils/
 │   └── train.py
 ├── assets/
-├── environment.yml
+├── pyproject.toml
 ├── LICENSE
 └── README.md
 ```
+
+## Features
+
+- **SE(3)-equivariant structure-aware fitness prediction**: Integrates protein sequence representations with predicted 3D structural information through an SE(3)-equivariant encoder to capture sequence–structure–fitness relationships.
+
+- **Composable mutation atlas**: Represents individual substitutions with additive fitness effects and latent epistatic embeddings, allowing mutations to be flexibly assembled into multi-mutant combinations.
+
+- **Explicit epistasis modeling**: Models non-additive interactions among mutations through a shared nonlinear epistasis module, with direct supervision from experimentally derived epistatic effects when available.
+
+- **Arbitrary-order mutant prediction**: Supports fitness prediction for single and higher-order mutants without explicitly parameterizing every pairwise or higher-order interaction term.
+
+- **Efficient combinatorial inference**: Encodes the wild-type protein once and reuses the resulting mutation atlas to rapidly evaluate large combinatorial mutation spaces.
 
 ## Quick Start
 
@@ -105,14 +106,13 @@ Training logs and checkpoints are written to `model/training_log/`, and predicti
 
 Use `python train.py --help` to view available arguments.
 
-### Resources
+## Resources
 
 | Resource | Location |
 |---|---|
 | Cerebra-Epistasis source code | [GitHub](https://github.com/xulab-research/Cerebra-Epistasis) |
 | Cerebra-Seq | [Hugging Face](https://huggingface.co/GongLab-THU/Cerebra-Seq) |
 | Cerebra-Epistasis code, benchmark datasets, precomputed features, and prediction outputs | [Zenodo](https://doi.org/10.5281/zenodo.22899137) |
-
 
 ## Citation
 
