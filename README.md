@@ -32,20 +32,20 @@ The dependency versions are pinned to those used in our tested environment to en
 
 ```text
 Cerebra-Epistasis/
-├── data/
-│   ├── data.csv
-│   └── wt.fasta
-├── generate_features/
-│   ├── 01_generate_ESM2_650M_embedding.py
-│   └── 02_generate_Cerebra_Seq_features.py
-├── model/
-│   ├── cerebra_epistasis/
-│   ├── utils/
-│   └── train.py
-├── assets/
-├── pyproject.toml
-├── LICENSE
-└── README.md
+├── data/                                      # Example input data for training and inference
+│   ├── data.csv                              # Mutation-fitness dataset
+│   └── wt.fasta                              # Wild-type protein sequence
+├── generate_features/                        # Scripts for generating sequence and structure features
+│   ├── 01_generate_ESM2_650M_embedding.py    # Generate ESM-2 650M residue-level embeddings
+│   └── 02_generate_Cerebra_Seq_features.py   # Generate Cerebra-Seq structure-aware features
+├── model/                                     # Cerebra-Epistasis model and training code
+│   ├── cerebra_epistasis/                    # Core model architecture
+│   ├── utils/                                # Utility functions and helper modules
+│   └── train.py                              # Main training script
+├── assets/                                    # Figures and other assets used in the documentation
+├── pyproject.toml                             # Project configuration and Python dependencies
+├── LICENSE                                    # Software license
+└── README.md                                  # Project overview, installation, and usage instructions
 ```
 
 ## Features
