@@ -122,7 +122,7 @@ Use `python train.py --help` to view available arguments.
 If you use Cerebra-Epistasis in your research, please cite:
 
 ```bibtex
-@article{cerebra_epistasis,
+@article{Cerebra-Epistasis,
   title   = {From single-sequence structure prediction to protein fitness landscape through a composable, epistasis-aware mutation atlas},
   author  = {Weizhe Wang, Zimu Yu, Endi Yang, Ziyu Shi, Shize Yu, Jian Hu, Yunxin Xu, Haipeng Gong},
   journal = {bioRxiv},
