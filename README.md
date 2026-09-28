@@ -10,7 +10,7 @@
 
 Cerebra-Epistasis is a composable, structure- and epistasis-aware framework for protein fitness landscape modeling. It encodes a wild-type protein once to construct a reusable mutation atlas, from which single-mutation effects and epistatic representations can be assembled to predict arbitrary-order mutant fitness.
 
-**Preprint**: https://doi.org/10.64898/2026.09.06.749687
+**Paper**: https://doi.org/10.64898/2026.09.06.749687
 
 <p align="center">
   <a href="assets/overview.svg">
