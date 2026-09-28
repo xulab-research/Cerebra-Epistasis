@@ -20,8 +20,6 @@ Cerebra-Epistasis is a composable, structure- and epistasis-aware framework for 
 
 ## Installation
 
-Install the required dependencies:
-
 ```bash
 pip install \
     torch==2.12.0 \
