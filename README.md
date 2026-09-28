@@ -20,12 +20,18 @@ Cerebra-Epistasis is a composable, structure- and epistasis-aware framework for 
 
 ## Installation
 
-Clone the repository and install the required dependencies:
+Install the required dependencies:
+
 ```bash
-git clone https://github.com/xulab-research/Cerebra-Epistasis.git
-cd Cerebra-Epistasis
-pip install -r requirements.txt
+pip install \
+    torch==2.12.0 \
+    pandas==3.0.3 \
+    transformers==5.17.0 \
+    einops==0.8.2 \
+    filelock==3.29.0 \
+    iterative-stratification==0.1.9
 ```
+
 The dependency versions are pinned to those used in our tested environment to ensure reproducibility. Newer versions may also be compatible.
 
 ## Repository structure
@@ -33,17 +39,16 @@ The dependency versions are pinned to those used in our tested environment to en
 ```text
 Cerebra-Epistasis/
 ├── data/                                      # Example input data for training and inference
-│   ├── data.csv                              # Mutation-fitness dataset
-│   └── wt.fasta                              # Wild-type protein sequence
-├── generate_features/                        # Scripts for generating sequence and structure features
-│   ├── 01_generate_ESM2_650M_embedding.py    # Generate ESM-2 650M residue-level embeddings
-│   └── 02_generate_Cerebra_Seq_features.py   # Generate Cerebra-Seq structure-aware features
+│   ├── data.csv                               # Mutation-fitness dataset
+│   └── wt.fasta                               # Wild-type protein sequence
+├── generate_features/                         # Scripts for generating sequence and structure features
+│   ├── 01_generate_ESM2_650M_embedding.py     # Generate ESM-2 650M residue-level embeddings
+│   └── 02_generate_Cerebra_Seq_features.py    # Generate Cerebra-Seq structure-aware features
 ├── model/                                     # Cerebra-Epistasis model and training code
-│   ├── cerebra_epistasis/                    # Core model architecture
-│   ├── utils/                                # Utility functions and helper modules
-│   └── train.py                              # Main training script
+│   ├── cerebra_epistasis/                     # Core model architecture
+│   ├── utils/                                 # Utility functions and helper modules
+│   └── train.py                               # Main training script
 ├── assets/                                    # Figures and other assets used in the documentation
-├── pyproject.toml                             # Project configuration and Python dependencies
 ├── LICENSE                                    # Software license
 └── README.md                                  # Project overview, installation, and usage instructions
 ```
