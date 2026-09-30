@@ -184,7 +184,6 @@ def get_basis(r_ij, max_degree, differentiable=False):
 
     with context():
         # r_ij.shape: torch.Size([1, 32, 4, 3])
-        # 变成球坐标系
         r_ij = get_spherical_from_cartesian(r_ij)
         # r_ij.shape: torch.Size([1, 32, 4, 3])
 

@@ -59,15 +59,10 @@ def broadcat(tensors, dim=-1):
     return torch.cat(tensors, dim=dim)
 
 
-# 这个 batched_index_select 函数的作用是：在批次数据（batched tensor）上模拟 index_select 操作，即在指定维度 dim 上按照 indices 索引 values
 def batched_index_select(values, indices, dim=1):
-    # 提取 values 张量中，在指定维度 dim 之后的所有“尾部特征维度”，并将它们保存为 value_dims。
     value_dims = values.shape[(dim + 1) :]
-    # 将 values 和 indices 这两个张量的 shape（张量维度信息）转换为 Python 的列表形式，并分别保存为 values_shape 和 indices_shape。
     values_shape, indices_shape = map(lambda t: list(t.shape), (values, indices))
-    # 给 indices 尾部加上若干个维度（维度值为1），其个数等于 value_dims 的维度个数，从而让它能和 values 的尾部特征维对齐，以支持后续的 .expand(...) 和 torch.gather()。
     indices = indices[(..., *((None,) * len(value_dims)))]
-    # 这行代码把 indices 广播成一个与 values 尾部特征维度相匹配的形状，使它可以在 gather() 操作中选择出 values 中的整块特征（比如通道、向量分量等）。
     indices = indices.expand(*((-1,) * len(indices_shape)), *value_dims)
     value_expand_len = len(indices_shape) - (dim + 1)
     values = values[(*((slice(None),) * dim), *((None,) * value_expand_len), ...)]
@@ -101,32 +96,19 @@ def fast_split(arr, splits, dim=0):
     # axis_len:32, splits:4
     splits = min(axis_len, max(splits, 1))
 
-    # 整数除法（//）保证是整除结果。
     chunk_size = axis_len // splits
-    # 计算在平均分割后剩下的“余数”元素个数，即最后还没被分配出去的部分。
     remainder = axis_len - chunk_size * splits
     s = 0
     for i in range(splits):
-        # 是 Python 的多变量同时赋值（tuple unpacking），结合条件判断 if ... else，功能是：决定当前这一块要不要“多拿一个元素”，并更新剩余的余数。
-        # if remainder > 0:
-        # adjust = 1     # 当前块多分一个
-        # else:
-        # adjust = 0     # 均分即可
-        # remainder = remainder - 1  # 减少一个余数（已经分出去了）
         adjust, remainder = 1 if remainder > 0 else 0, remainder - 1
-        # torch.narrow：从张量 input 的第 dim 维上，提取从位置 start 开始、长度为 length 的子张量。
         yield torch.narrow(arr, dim, s, chunk_size + adjust)
         s += chunk_size + adjust
 
 
-# 把输入 x 映射到 高维的 Fourier 特征空间
 def fourier_encode(x, num_encodings=4, include_self=True, flatten=True):
-    x = x.unsqueeze(-1)  # 在最后一个维度上增加一个维度
+    x = x.unsqueeze(-1)
     device, dtype, orig_x = x.device, x.dtype, x
-    # 对这个序列逐元素做 2 的幂运算。
     scales = 2 ** torch.arange(num_encodings, device=device, dtype=dtype)
-    # scales:tensor([1., 2., 4., 8.])
-
     x = x / scales
     x = torch.cat([x.sin(), x.cos()], dim=-1)
     x = torch.cat((x, orig_x), dim=-1) if include_self else x

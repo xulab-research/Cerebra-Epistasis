@@ -662,7 +662,7 @@ class SE3Transformer(torch.nn.Module):
         epi_score_masked = epi_score.masked_select(exclude_self_mask).reshape(b, n, n - 1)
 
         epi_score_for_selection = epi_score_masked.clone()
-        min_value = -torch.finfo(epi_score_for_selection.dtype).max  # 或者直接 float('-inf')
+        min_value = -torch.finfo(epi_score_for_selection.dtype).max
         epi_score_for_selection.scatter_(dim=2, index=geo_local_indices, value=min_value)
         _, epi_local_indices = epi_score_for_selection.topk(k_epi, dim=-1, largest=True)
 
