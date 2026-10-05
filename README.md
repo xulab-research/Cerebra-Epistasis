@@ -65,23 +65,25 @@ Cerebra-Epistasis/
 
 ## Quick Start
 
+The following workflow trains a Cerebra-Epistasis model on a single assay and predicts fitness for its held-out variants. Start from the repository root and run the commands in order. File paths shown below are relative to the repository root.
+
 ### Input data
 
-Place `data.csv` and `wt.fasta` under `data/`.
+Example input files are provided in `data/`. To use your own data, place `data.csv` and `wt.fasta` for one assay and its corresponding wild-type protein in this directory.
 
-`data.csv` must contain:
+`data.csv` must contain the following columns:
 
-```text
-mutation_name
-label
-fold_id
-```
-
-`mutation_name` specifies the amino-acid substitution(s) using 0-based residue indexing, with multiple substitutions separated by commas. `label` contains the experimentally measured fitness value. `fold_id=0` is used for training and `fold_id=1` for testing.
+| Column | Description |
+|---|---|
+| `mutation_name` | Amino-acid substitutions using 0-based residue indexing, such as `H25N` or `H25N,M27K`. Separate multiple substitutions with commas. |
+| `label` | Numerical mutation-effect measurement for the assay. |
+| `fold_id` | Train/test assignment: `0` for training and `1` for testing. |
 
 ### Feature generation
 
-Cerebra-Epistasis uses **ESM-2 650M** sequence representations and **Cerebra-Seq** structural representations derived from the wild-type sequence.
+Generate ESM-2 650M sequence embeddings and Cerebra-Seq structural features for the wild-type protein. These features are reused across all variants derived from the same wild-type sequence; individual mutant sequences do not need to be encoded separately.
+
+The feature-generation scripts use CUDA.
 
 ```bash
 cd generate_features
@@ -89,7 +91,7 @@ python 01_generate_ESM2_650M_embedding.py
 python 02_generate_Cerebra_Seq_features.py
 ```
 
-The generated files are:
+The scripts save the following files:
 
 ```text
 data/embedding_ESM2_650M_for_Cerebra_Epistasis.pt
@@ -100,8 +102,10 @@ Cerebra-Seq is available on [Hugging Face](https://huggingface.co/GongLab-THU/Ce
 
 ### Training and prediction
 
+Train the downstream model using the precomputed features and records with `fold_id=0`, then predict fitness for records with `fold_id=1`:
+
 ```bash
-cd model
+cd ../model
 python train.py
 ```
 
