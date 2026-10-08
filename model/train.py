@@ -1,11 +1,14 @@
-import argparse
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import torch
+from clize import run
 
 from cerebra_epistasis.model import SE3Transformer
+from utils.calculate_nbodys_mutation_effect import (
+    calculate_batch_prediction_mlp,
+    EpistasisMLP,
+)
 from utils.metrics import spearman_corr
 from utils.utils_func import (
     compute_twobody_epistasis_labels,
@@ -15,7 +18,6 @@ from utils.utils_func import (
     set_seed_everywhere,
     to_gpu,
 )
-from utils.calculate_nbodys_mutation_effect import calculate_batch_prediction_mlp, EpistasisMLP
 
 BASE_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = BASE_DIR.parent
@@ -33,7 +35,7 @@ def load_data(data_root, device):
 
     mean = float(train_df["label"].mean())
     std = float(train_df["label"].std(ddof=0)) + 1e-8
-    train_y = torch.as_tensor(((train_df["label"].to_numpy() - mean) / std).astype(np.float32), device=device)
+    train_y = torch.as_tensor((train_df["label"].to_numpy() - mean) / std, dtype=torch.float32, device=device)
     epi_indices, epi_labels = compute_twobody_epistasis_labels(train_df=train_df, train_mean=mean, train_std=std)
     length = len(read_wt_idx_from_fasta(data_root / "wt.fasta"))
     geo_neighbor, epi_neighbor = (1.0 / 3.0, 0.0) if length > 200 else (0.5, 1.0 / 3.0)
@@ -52,25 +54,41 @@ def load_data(data_root, device):
     }
 
 
-def train(args, unit, device):
-    set_seed_everywhere(args.seed)
+def train(
+    unit,
+    device,
+    *,
+    seed,
+    epochs,
+    lr,
+    min_lr,
+    adj_dim,
+    rankH,
+    mlp_hidden_dim,
+    mlp_dropout,
+    huber_delta,
+    clip_grad,
+    lambda_epi,
+    train_log,
+):
+    set_seed_everywhere(seed)
     model = SE3Transformer(
         depth=1,
         hidden_fiber_dict={0: 320, 1: 32},
         out_fiber_dict={0: 128, 1: 32},
-        adj_dim=args.adj_dim,
-        rankH=args.rankH,
+        adj_dim=adj_dim,
+        rankH=rankH,
         geo_neighbor=unit["geo_neighbor"],
         epi_neighbor=unit["epi_neighbor"],
     ).to(device)
-    mlp = EpistasisMLP(input_dim=args.rankH, hidden_dim=args.mlp_hidden_dim, dropout=args.mlp_dropout).to(device)
+    mlp = EpistasisMLP(input_dim=rankH, hidden_dim=mlp_hidden_dim, dropout=mlp_dropout).to(device)
     parameters = list(model.parameters()) + list(mlp.parameters())
-    optimizer = torch.optim.Adam(parameters, lr=args.lr, eps=1e-6)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=args.min_lr)
+    optimizer = torch.optim.Adam(parameters, lr=lr, eps=1e-6)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=min_lr)
     mut_list = unit["train_df"]["mutation_name"].tolist()
     logs = []
 
-    for epoch in range(args.epochs):
+    for epoch in range(epochs):
         model.train()
         mlp.train()
         optimizer.zero_grad(set_to_none=True)
@@ -85,13 +103,13 @@ def train(args, unit, device):
             return_epi=True,
             sqrt_scale=True,
         )
-        fitness_loss = torch.nn.functional.smooth_l1_loss(preds.float(), unit["train_y"], beta=args.huber_delta)
+        fitness_loss = torch.nn.functional.smooth_l1_loss(preds.float(), unit["train_y"], beta=huber_delta)
         epi_loss = fitness_loss.new_zeros(())
-        if args.lambda_epi > 0 and unit["epi_indices"].numel() > 0:
-            epi_loss = torch.nn.functional.smooth_l1_loss(pred_epi[unit["epi_indices"]].float(), unit["epi_y"], beta=args.huber_delta)
-        loss = fitness_loss + args.lambda_epi * epi_loss
+        if lambda_epi > 0 and unit["epi_indices"].numel() > 0:
+            epi_loss = torch.nn.functional.smooth_l1_loss(pred_epi[unit["epi_indices"]].float(), unit["epi_y"], beta=huber_delta)
+        loss = fitness_loss + lambda_epi * epi_loss
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(parameters, args.clip_grad)
+        torch.nn.utils.clip_grad_norm_(parameters, clip_grad)
         optimizer.step()
         scheduler.step()
 
@@ -108,15 +126,14 @@ def train(args, unit, device):
         )
         print(f"[epoch {epoch:03d}] loss={loss.item():.6f} train_spearman={train_spearman:.6f}")
 
-    log_dir = Path(args.train_log)
+    log_dir = train_log
     log_dir.mkdir(parents=True, exist_ok=True)
     pd.DataFrame(logs).to_csv(log_dir / "train_log.csv", index=False)
     torch.save(
         {
-            "epoch": args.epochs - 1,
+            "epoch": epochs - 1,
             "model_state": {k: v.detach().cpu() for k, v in model.state_dict().items()},
             "mlp_state": {k: v.detach().cpu() for k, v in mlp.state_dict().items()},
-            "args": vars(args),
             "train_mean": unit["mean"],
             "train_denom": unit["std"],
             "n_train_epi": int(unit["epi_indices"].numel()),
@@ -127,7 +144,7 @@ def train(args, unit, device):
 
 
 @torch.no_grad()
-def predict_test(args, unit, model, mlp, device):
+def predict_test(unit, model, mlp, device, *, pred_output: Path):
     model.eval()
     mlp.eval()
     single_pred, high_delta = model(unit["data"])
@@ -143,35 +160,50 @@ def predict_test(args, unit, model, mlp, device):
         sqrt_scale=True,
     )
     test_df["pred"] = pred_z.detach().cpu().numpy().reshape(-1) * unit["std"] + unit["mean"]
-    pred_dir = Path(args.pred_output)
+    pred_dir = pred_output
     pred_dir.mkdir(parents=True, exist_ok=True)
     test_df.to_csv(pred_dir / "predictions.csv", index=False)
     print(f"[saved] {pred_dir / 'predictions.csv'} ({len(test_df)} test variants)")
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Train on one assay and predict its held-out test set.")
-    parser.add_argument("--device", default="cuda")
-    parser.add_argument("--data_root", type=Path, default=PROJECT_ROOT / "data")
-    parser.add_argument("--train_log", type=Path, default=BASE_DIR / "training_log")
-    parser.add_argument("--pred_output", type=Path, default=BASE_DIR / "output")
-    parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--epochs", type=int, default=150)
-    parser.add_argument("--lr", type=float, default=1e-4)
-    parser.add_argument("--min_lr", type=float, default=1e-6)
-    parser.add_argument("--adj_dim", type=int, default=32)
-    parser.add_argument("--rankH", type=int, default=64)
-    parser.add_argument("--mlp_hidden_dim", type=int, default=256)
-    parser.add_argument("--mlp_dropout", type=float, default=0.2)
-    parser.add_argument("--huber_delta", type=float, default=1.0)
-    parser.add_argument("--clip_grad", type=float, default=2.0)
-    parser.add_argument("--lambda_epi", type=float, default=2.0)
-    args = parser.parse_args()
-    device = torch.device(args.device)
-    unit = load_data(args.data_root, device)
-    model, mlp = train(args, unit, device)
-    predict_test(args, unit, model, mlp, device)
+def main(
+    *,
+    device: str = "cuda",
+    data_root: Path = PROJECT_ROOT / "data",
+    train_log: Path = BASE_DIR / "training_log",
+    pred_output: Path = BASE_DIR / "output",
+    seed: int = 42,
+    epochs: int = 150,
+    lr: float = 1e-4,
+    min_lr: float = 1e-6,
+    adj_dim: int = 32,
+    rankH: int = 64,
+    mlp_hidden_dim: int = 256,
+    mlp_dropout: float = 0.2,
+    huber_delta: float = 1.0,
+    clip_grad: float = 2.0,
+    lambda_epi: float = 2.0,
+):
+    device = torch.device(device)
+    unit = load_data(data_root, device)
+    model, mlp = train(
+        unit,
+        device,
+        seed=seed,
+        epochs=epochs,
+        lr=lr,
+        min_lr=min_lr,
+        adj_dim=adj_dim,
+        rankH=rankH,
+        mlp_hidden_dim=mlp_hidden_dim,
+        mlp_dropout=mlp_dropout,
+        huber_delta=huber_delta,
+        clip_grad=clip_grad,
+        lambda_epi=lambda_epi,
+        train_log=train_log,
+    )
+    predict_test(unit, model, mlp, device, pred_output=pred_output)
 
 
 if __name__ == "__main__":
-    main()
+    run(main)

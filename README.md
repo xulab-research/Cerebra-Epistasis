@@ -27,6 +27,7 @@ pip install \
     transformers==5.17.0 \
     einops==0.8.2 \
     filelock==3.29.0 \
+    clize==5.0.2 \
     iterative-stratification==0.1.9
 ```
 
