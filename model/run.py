@@ -51,23 +51,7 @@ def load_data(data_root, device):
     }
 
 
-def train(
-    unit,
-    device,
-    *,
-    seed,
-    epochs,
-    lr,
-    min_lr,
-    adj_dim,
-    rankH,
-    mlp_hidden_dim,
-    mlp_dropout,
-    huber_delta,
-    clip_grad,
-    lambda_epi,
-    train_log_dir,
-):
+def train(unit, device, *, seed, epochs, lr, min_lr, adj_dim, rankH, mlp_hidden_dim, mlp_dropout, huber_delta, clip_grad, lambda_epi, train_log_dir):
     set_seed_everywhere(seed)
     model = SE3Transformer(
         hidden_fiber_dict={0: 320, 1: 32},
@@ -162,23 +146,7 @@ def predict_test(unit, model, mlp, device, *, pred_output_dir: Path):
     print(f"[saved] {pred_output_dir / 'predictions.csv'} ({len(test_df)} test variants)")
 
 
-def main(
-    *,
-    data_root: Path = PROJECT_ROOT / "data",
-    train_log_dir: Path = BASE_DIR / "training_log",
-    pred_output_dir: Path = BASE_DIR / "output",
-    seed: int = 42,
-    epochs: int = 150,
-    lr: float = 1e-4,
-    min_lr: float = 1e-6,
-    adj_dim: int = 32,
-    rankH: int = 64,
-    mlp_hidden_dim: int = 256,
-    mlp_dropout: float = 0.2,
-    huber_delta: float = 1.0,
-    clip_grad: float = 2.0,
-    lambda_epi: float = 2.0,
-):
+def main(*, data_root: Path = PROJECT_ROOT / "data", train_log_dir: Path = BASE_DIR / "training_log", pred_output_dir: Path = BASE_DIR / "output", seed: int = 42, epochs: int = 150, lr: float = 1e-4, min_lr: float = 1e-6, adj_dim: int = 32, rankH: int = 64, mlp_hidden_dim: int = 256, mlp_dropout: float = 0.2, huber_delta: float = 1.0, clip_grad: float = 2.0, lambda_epi: float = 2.0):
     device = torch.device("cuda")
     unit = load_data(data_root, device)
     model, mlp = train(

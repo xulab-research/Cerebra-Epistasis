@@ -84,13 +84,7 @@ def set_seed_everywhere(seed: int) -> None:
     torch.backends.cudnn.benchmark = False
 
 
-def get_fold_split(
-    cv_df: pd.DataFrame,
-    split_col: str,
-    test_fold: int,
-    *,
-    seed: int,
-) -> Tuple[List[str], np.ndarray, List[str], np.ndarray, List[str], np.ndarray, float, float]:
+def get_fold_split(cv_df: pd.DataFrame, split_col: str, test_fold: int, *, seed: int) -> Tuple[List[str], np.ndarray, List[str], np.ndarray, List[str], np.ndarray, float, float]:
     """
     Returns: Train, Val, Test data and Train Mean/Std
     """
