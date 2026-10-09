@@ -5,7 +5,7 @@ import torch
 from einops import rearrange, repeat
 
 from .basis import get_basis
-from .utils import exists, default, uniq, batched_index_select, masked_mean, to_order, fourier_encode, cast_tuple, safe_cat, fast_split, rand_uniform, broadcat
+from .utils import exists, default, uniq, batched_index_select, masked_mean, to_order, fourier_encode, safe_cat, fast_split
 from .reversible import SequentialSequence
 
 FiberEl = namedtuple("FiberEl", ["degrees", "dim"])

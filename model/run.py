@@ -70,7 +70,6 @@ def train(
 ):
     set_seed_everywhere(seed)
     model = SE3Transformer(
-        depth=1,
         hidden_fiber_dict={0: 320, 1: 32},
         out_fiber_dict={0: 128, 1: 32},
         adj_dim=adj_dim,

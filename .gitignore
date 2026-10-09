@@ -1,0 +1,8 @@
+# Python cache files
+__pycache__/
+
+# Model training logs and checkpoints
+model/training_log/
+
+# Model prediction outputs
+model/output/

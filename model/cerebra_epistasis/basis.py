@@ -1,5 +1,5 @@
 import os
-from math import pi
+
 import torch
 from torch import einsum
 from einops import rearrange

@@ -8,7 +8,7 @@ from pathlib import Path
 from .utils import default, cast_torch_tensor, to_order
 from .spherical_harmonics import get_spherical_harmonics
 
-DATA_PATH = path = Path(os.path.dirname(__file__)) / "data"
+DATA_PATH = Path(os.path.dirname(__file__)) / "data"
 
 try:
     path = DATA_PATH / "J_dense.pt"

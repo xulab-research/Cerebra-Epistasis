@@ -3,8 +3,7 @@ import torch
 
 def _find_repeats(data):
 
-    temp = data.detach().clone()
-    temp = temp.sort()[0]
+    temp = data.detach().sort()[0]
 
     change = torch.cat([torch.tensor([True], device=temp.device), temp[1:] != temp[:-1]])
     unique = temp[change]
@@ -19,7 +18,7 @@ def _rank_data(data):
     n = data.numel()
     rank = torch.empty_like(data)
     idx = data.argsort()
-    rank[idx[:n]] = torch.arange(1, n + 1, dtype=data.dtype, device=data.device)
+    rank[idx] = torch.arange(1, n + 1, dtype=data.dtype, device=data.device)
 
     repeats = _find_repeats(data)
     for r in repeats:

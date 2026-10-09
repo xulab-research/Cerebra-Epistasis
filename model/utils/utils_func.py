@@ -6,8 +6,6 @@ from pathlib import Path
 from typing import List, Tuple
 from iterstrat.ml_stratifiers import MultilabelStratifiedKFold
 
-data_root = Path(__file__).resolve().parents[1] / "data"
-
 AA_ORDER = "ACDEFGHIKLMNPQRSTVWY"
 AA_TO_IDX = {aa: i for i, aa in enumerate(AA_ORDER)}
 
@@ -162,7 +160,7 @@ def load_features(assay_dir):
 
     return {
         "embedding": embedding,
-        "wt_idx": torch.as_tensor(wt_idx, dtype=torch.long),
+        "wt_idx": wt_idx,
         "node_embedding": cerebra_features["node_embedding"].float(),
         "edge_embedding": cerebra_features["edge_embedding"].float().permute(1, 2, 0).contiguous(),
         "atom14_coords": cerebra_features["atom14_coords"].float(),
