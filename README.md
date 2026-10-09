@@ -10,7 +10,7 @@
 
 Cerebra-Epistasis is a composable, structure- and epistasis-aware framework for protein fitness landscape modeling. It encodes a wild-type protein once to construct a reusable mutation atlas, from which single-mutation effects and epistatic representations can be assembled to predict arbitrary-order mutant fitness.
 
-**Paper**: https://doi.org/10.64898/2026.09.06.749687
+**Paper**: https://doi.org/10.64898/2026.09.24.753701
 
 <p align="center">
   <a href="assets/overview.svg">
@@ -46,7 +46,7 @@ Cerebra-Epistasis/
 ├── model/                                     # Cerebra-Epistasis model and training code
 │   ├── cerebra_epistasis/                     # Core model architecture
 │   ├── utils/                                 # Utility functions and helper modules
-│   └── train.py                               # Main training script
+│   └── run.py                                 # Training and prediction script
 ├── assets/                                    # Figures and other assets used in the documentation
 ├── LICENSE                                    # Software license
 └── README.md                                  # Project overview, installation, and usage instructions
@@ -107,12 +107,12 @@ Train the downstream model using the precomputed features and records with `fold
 
 ```bash
 cd ../model
-python train.py
+python run.py
 ```
 
 Training logs and checkpoints are written to `model/training_log/`, and predictions to `model/output/`.
 
-Use `python train.py --help` to view available arguments.
+Use `python run.py --help` to view available arguments.
 
 ## Resources
 
