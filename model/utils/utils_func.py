@@ -20,18 +20,15 @@ def log_param_grad_norms(model):
         print(f"{name:60s} {grad_str}")
 
 
-def to_gpu(obj, device):
+def to_gpu(obj):
     if isinstance(obj, torch.Tensor):
-        try:
-            return obj.to(device=device, non_blocking=True)
-        except RuntimeError:
-            return obj.to(device)
+        return obj.cuda(non_blocking=True)
     elif isinstance(obj, list):
-        return [to_gpu(i, device=device) for i in obj]
+        return [to_gpu(i) for i in obj]
     elif isinstance(obj, tuple):
-        return (to_gpu(i, device=device) for i in obj)
+        return tuple(to_gpu(i) for i in obj)
     elif isinstance(obj, dict):
-        return {i: to_gpu(j, device=device) for i, j in obj.items()}
+        return {i: to_gpu(j) for i, j in obj.items()}
     else:
         return obj
 

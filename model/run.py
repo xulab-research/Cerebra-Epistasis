@@ -33,7 +33,7 @@ def load_data(data_root, device):
     std = float(train_df["label"].std(ddof=0)) + 1e-8
     train_y = torch.as_tensor((train_df["label"].to_numpy() - mean) / std, dtype=torch.float32, device=device)
     epi_indices, epi_labels = compute_twobody_epistasis_labels(train_df=train_df, train_mean=mean, train_std=std)
-    data = to_gpu(load_features(data_root), device)
+    data = to_gpu(load_features(data_root))
     seq_len = len(data["wt_idx"])
     geo_neighbor, epi_neighbor = (1.0 / 3.0, 0.0) if seq_len > 200 else (0.5, 1.0 / 3.0)
     return {
