@@ -28,6 +28,7 @@ pip install \
     einops==0.8.2 \
     filelock==3.29.0 \
     clize==5.0.2 \
+    biopython==1.88 \
     iterative-stratification==0.1.9
 ```
 
