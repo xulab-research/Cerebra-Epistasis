@@ -1,11 +1,11 @@
+import math
 import torch
-from .utils import cache
-from operator import mul
-from math import pi, sqrt
-from functools import reduce
+import operator
+import functools
 
 from functools import lru_cache
 
+from .utils import cache
 
 # constants
 
@@ -25,12 +25,12 @@ def lpmv_cache_key_fn(l, m, x):
 
 @lru_cache(maxsize=1000)
 def semifactorial(x):
-    return reduce(mul, range(x, 1, -2), 1.0)
+    return functools.reduce(operator.mul, range(x, 1, -2), 1.0)
 
 
 @lru_cache(maxsize=1000)
 def pochhammer(x, k):
-    return reduce(mul, range(x + 1, x + k), float(x))
+    return functools.reduce(operator.mul, range(x + 1, x + k), float(x))
 
 
 def negative_lpmv(l, m, y):
@@ -98,7 +98,7 @@ def get_spherical_harmonics_element(l, m, theta, phi):
     m_abs = abs(m)
     assert m_abs <= l, "absolute value of order m must be <= degree l"
 
-    N = sqrt((2 * l + 1) / (4 * pi))
+    N = math.sqrt((2 * l + 1) / (4 * math.pi))
     leg = lpmv(l, m_abs, torch.cos(theta))
 
     if m == 0:
@@ -110,7 +110,7 @@ def get_spherical_harmonics_element(l, m, theta, phi):
         Y = torch.sin(m_abs * phi)
 
     Y *= leg
-    N *= sqrt(2.0 / pochhammer(l - m_abs + 1, 2 * m_abs))
+    N *= math.sqrt(2.0 / pochhammer(l - m_abs + 1, 2 * m_abs))
     Y *= N
     return Y
 

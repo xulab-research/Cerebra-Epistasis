@@ -1,6 +1,4 @@
 import torch
-from torch.autograd.function import Function
-from torch.utils.checkpoint import get_device_states, set_device_states
 
 # helpers
 
@@ -78,7 +76,7 @@ class Deterministic(torch.nn.Module):
         self.cpu_state = torch.get_rng_state()
         if torch.cuda._initialized:
             self.cuda_in_fwd = True
-            self.gpu_devices, self.gpu_states = get_device_states(*args)
+            self.gpu_devices, self.gpu_states = torch.utils.checkpoint.get_device_states(*args)
 
     def forward(self, *args, record_rng=False, set_rng=False, **kwargs):
         if record_rng:
@@ -94,7 +92,7 @@ class Deterministic(torch.nn.Module):
         with torch.random.fork_rng(devices=rng_devices, enabled=True):
             torch.set_rng_state(self.cpu_state)
             if self.cuda_in_fwd:
-                set_device_states(self.gpu_devices, self.gpu_states)
+                torch.utils.checkpoint.set_device_states(self.gpu_devices, self.gpu_states)
             return self.net(*args, **kwargs)
 
 
@@ -160,7 +158,7 @@ class ReversibleBlock(torch.nn.Module):
         return x, dx
 
 
-class _ReversibleFunction(Function):
+class _ReversibleFunction(torch.autograd.function.Function):
     @staticmethod
     def forward(ctx, x, blocks, kwargs):
         input_keys = kwargs.pop("input_keys")

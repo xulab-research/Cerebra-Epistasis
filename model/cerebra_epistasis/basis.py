@@ -1,7 +1,6 @@
 import os
 
 import torch
-from torch import einsum
 from einops import rearrange
 from itertools import product
 from contextlib import contextmanager
@@ -107,7 +106,7 @@ def kron(a, b):
     :type b: torch.Tensor
     :rtype: torch.Tensor
     """
-    res = einsum("... i j, ... k l -> ... i k j l", a, b)
+    res = torch.einsum("... i j, ... k l -> ... i k j l", a, b)
     return rearrange(res, "... i j k l -> ... (i j) (k l)")
 
 

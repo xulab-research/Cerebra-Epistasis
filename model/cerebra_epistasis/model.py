@@ -1,4 +1,4 @@
-from math import sqrt
+import math
 from itertools import product
 from collections import namedtuple
 import torch
@@ -71,7 +71,7 @@ class LinearSE3(torch.nn.Module):
         self.weights = torch.nn.ParameterDict()
         for degree, dim_in, dim_out in fiber_in & fiber_out:
             key = str(degree)
-            self.weights[key] = torch.nn.Parameter(torch.randn(dim_in, dim_out) / sqrt(dim_in))
+            self.weights[key] = torch.nn.Parameter(torch.randn(dim_in, dim_out) / math.sqrt(dim_in))
 
     def forward(self, x):
         out = {}

@@ -1,8 +1,8 @@
 import os
-import numpy as np
+
 import torch
-from torch import sin, cos, atan2, acos
-from math import pi
+import math
+import numpy as np
 from pathlib import Path
 
 from .utils import default, cast_torch_tensor, to_order
@@ -38,8 +38,8 @@ def z_rot_mat(angle, l):
     reversed_inds = torch.arange(2 * l, -1, -1, dtype=torch.long, device=device)
     frequencies = torch.arange(l, -l - 1, -1, dtype=dtype, device=device)[None]
 
-    m[inds, reversed_inds] = sin(frequencies * angle[None])
-    m[inds, inds] = cos(frequencies * angle[None])
+    m[inds, reversed_inds] = torch.sin(frequencies * angle[None])
+    m[inds, inds] = torch.cos(frequencies * angle[None])
     return m
 
 
@@ -60,7 +60,7 @@ def rot_z(gamma):
     Rotation around Z axis
     """
     return torch.tensor(
-        [[cos(gamma), -sin(gamma), 0], [sin(gamma), cos(gamma), 0], [0, 0, 1]],
+        [[torch.cos(gamma), -torch.sin(gamma), 0], [torch.sin(gamma), torch.cos(gamma), 0], [0, 0, 1]],
         dtype=gamma.dtype,
     )
 
@@ -71,7 +71,7 @@ def rot_y(beta):
     Rotation around Y axis
     """
     return torch.tensor(
-        [[cos(beta), 0, sin(beta)], [0, 1, 0], [-sin(beta), 0, cos(beta)]],
+        [[torch.cos(beta), 0, torch.sin(beta)], [0, 1, 0], [-torch.sin(beta), 0, torch.cos(beta)]],
         dtype=beta.dtype,
     )
 
@@ -82,8 +82,8 @@ def x_to_alpha_beta(x):
     Convert point (x, y, z) on the sphere into (alpha, beta)
     """
     x = x / torch.norm(x)
-    beta = acos(x[2])
-    alpha = atan2(x[1], x[0])
+    beta = torch.acos(x[2])
+    alpha = torch.atan2(x[1], x[0])
     return (alpha, beta)
 
 
@@ -102,9 +102,9 @@ def compose(a1, b1, c1, a2, b2, c2):
     xyz = comp @ torch.tensor([0, 0, 1.0])
     a, b = x_to_alpha_beta(xyz)
     rotz = rot(0, -b, -a) @ comp
-    c = atan2(rotz[1, 0], rotz[0, 0])
+    c = torch.atan2(rotz[1, 0], rotz[0, 0])
     return a, b, c
 
 
 def spherical_harmonics(order, alpha, beta, dtype=None):
-    return get_spherical_harmonics(order, theta=(pi - beta), phi=alpha)
+    return get_spherical_harmonics(order, theta=(math.pi - beta), phi=alpha)

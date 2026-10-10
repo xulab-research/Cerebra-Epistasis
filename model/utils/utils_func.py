@@ -2,9 +2,9 @@ import torch
 import random
 import pandas as pd
 import numpy as np
+import iterstrat
 from pathlib import Path
 from typing import List, Tuple
-from iterstrat.ml_stratifiers import MultilabelStratifiedKFold
 
 AA_ORDER = "ACDEFGHIKLMNPQRSTVWY"
 AA_TO_IDX = {aa: i for i, aa in enumerate(AA_ORDER)}
@@ -103,7 +103,7 @@ def get_fold_split(cv_df: pd.DataFrame, split_col: str, test_fold: int, *, seed:
 
     x_dummy = np.zeros((len(train_all_df), 1))
 
-    mskf = MultilabelStratifiedKFold(n_splits=8, shuffle=True, random_state=seed + test_fold)
+    mskf = iterstrat.ml_stratifiers.MultilabelStratifiedKFold(n_splits=8, shuffle=True, random_state=seed + test_fold)
     val_fold_id = (seed + test_fold) % 8
 
     tr_idx, va_idx = None, None
