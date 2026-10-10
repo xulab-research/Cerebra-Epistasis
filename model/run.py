@@ -1,4 +1,4 @@
-import pathlib
+from pathlib import Path
 
 import clize
 import pandas as pd
@@ -18,7 +18,7 @@ from utils.utils_func import (
     to_gpu,
 )
 
-BASE_DIR = pathlib.Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = BASE_DIR.parent
 
 
@@ -125,7 +125,7 @@ def train(unit, device, *, seed, epochs, lr, min_lr, adj_dim, rankH, mlp_hidden_
 
 
 @torch.no_grad()
-def predict_test(unit, model, mlp, device, *, pred_output_dir: pathlib.Path):
+def predict_test(unit, model, mlp, device, *, pred_output_dir: Path):
     model.eval()
     mlp.eval()
     single_pred, high_delta = model(unit["data"])
@@ -146,7 +146,7 @@ def predict_test(unit, model, mlp, device, *, pred_output_dir: pathlib.Path):
     print(f"[saved] {pred_output_dir / 'predictions.csv'} ({len(test_df)} test variants)")
 
 
-def main(*, data_root: pathlib.Path = PROJECT_ROOT / "data", train_log_dir: pathlib.Path = BASE_DIR / "training_log", pred_output_dir: pathlib.Path = BASE_DIR / "output", seed: int = 42, epochs: int = 150, lr: float = 1e-4, min_lr: float = 1e-6, adj_dim: int = 32, rankH: int = 64, mlp_hidden_dim: int = 256, mlp_dropout: float = 0.2, huber_delta: float = 1.0, clip_grad: float = 2.0, lambda_epi: float = 2.0):
+def main(*, data_root: Path = PROJECT_ROOT / "data", train_log_dir: Path = BASE_DIR / "training_log", pred_output_dir: Path = BASE_DIR / "output", seed: int = 42, epochs: int = 150, lr: float = 1e-4, min_lr: float = 1e-6, adj_dim: int = 32, rankH: int = 64, mlp_hidden_dim: int = 256, mlp_dropout: float = 0.2, huber_delta: float = 1.0, clip_grad: float = 2.0, lambda_epi: float = 2.0):
     device = torch.device("cuda")
     unit = load_data(data_root, device)
     model, mlp = train(
