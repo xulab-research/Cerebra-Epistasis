@@ -34,6 +34,7 @@ pip install \
 
 The dependency versions are pinned to those used in our tested environment to ensure reproducibility. Newer versions may also be compatible.
 
+
 ## Repository structure
 
 ```text
@@ -44,10 +45,11 @@ Cerebra-Epistasis/
 ├── generate_features/                         # Scripts for generating sequence and structure features
 │   ├── 01_generate_ESM2_650M_embedding.py     # Generate ESM-2 650M residue-level embeddings
 │   └── 02_generate_Cerebra_Seq_features.py    # Generate Cerebra-Seq structure-aware features
-├── model/                                     # Cerebra-Epistasis model and training code
+├── model/                                     # Cerebra-Epistasis model, training, and inference code
 │   ├── cerebra_epistasis/                     # Core model architecture
 │   ├── utils/                                 # Utility functions and helper modules
-│   └── run.py                                 # Training and prediction script
+│   ├── train.py                               # Model training and checkpoint generation
+│   └── predict.py                             # Model inference using trained checkpoints
 ├── assets/                                    # Figures and other assets used in the documentation
 ├── LICENSE                                    # Software license
 └── README.md                                  # Project overview, installation, and usage instructions
@@ -104,16 +106,37 @@ Cerebra-Seq is available on [Hugging Face](https://huggingface.co/GongLab-THU/Ce
 
 ### Training and prediction
 
-Train the downstream model using the precomputed features and records with `fold_id=0`, then predict fitness for records with `fold_id=1`:
+Train the downstream model using the precomputed features and records with `fold_id=0`:
 
 ```bash
 cd ../model
-python run.py
+python train.py 
+    --seed 42 \
+    --epochs 150 \
+    --lr 1e-4 \
+    --min-lr 1e-6 \
+    --adj-dim 32 \
+    --rank-h 64 \
+    --mlp-hidden-dim 256 \
+    --mlp-dropout 0.2 \
+    --huber-delta 1.0 \
+    --clip-grad 2.0 \
+    --lambda-epi 2.0
 ```
 
-Training logs and checkpoints are written to `model/training_log/`, and predictions to `model/output/`.
+Training logs and checkpoints are saved to `model/training_log/`, including `train_log.csv` and `last.pt`.
 
-Use `python run.py --help` to view available arguments.
+After training, load the saved checkpoint and predict fitness for records with `fold_id=1`:
+
+```bash
+python predict.py
+```
+
+Predictions are saved to `model/output/predictions.csv`.
+
+Training and prediction can be run independently. Once a checkpoint has been generated, `predict.py` can be executed without retraining the model.
+
+Use `python train.py --help` and `python predict.py --help` to view the available arguments for each script.
 
 ## Resources
 

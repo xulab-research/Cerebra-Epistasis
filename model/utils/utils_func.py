@@ -1,9 +1,10 @@
-import torch
 import random
+
+import torch
+import iterstrat
+from Bio import SeqIO
 import pandas as pd
 import numpy as np
-import iterstrat
-from pathlib import Path
 from typing import List, Tuple
 
 AA_ORDER = "ACDEFGHIKLMNPQRSTVWY"
@@ -45,29 +46,8 @@ def get_position_matrix(mut_list: List[str]) -> np.ndarray:
     return Y
 
 
-def zscore_labels(train_labels: pd.Series, val_labels: pd.Series, eps: float = 1e-8):
-    train_labels = train_labels.astype(float)
-    val_labels = val_labels.astype(float)
-
-    mean = train_labels.mean()
-    std = train_labels.std(ddof=0)
-    denom = std + eps
-
-    train_z = (train_labels - mean) / denom
-    val_z = (val_labels - mean) / denom
-
-    return train_z.tolist(), val_z.tolist()
-
-
-def row_zscore(x, eps=1e-8):
-    # x: [L,20]
-    mu = x.mean(dim=-1, keepdim=True)
-    std = x.std(dim=-1, keepdim=True, unbiased=False)
-    return (x - mu) / (std + eps)
-
-
 def read_wt_idx_from_fasta(fasta_path: str) -> torch.LongTensor:
-    wt_seq = Path(fasta_path).read_text().splitlines()[1].strip().upper()
+    wt_seq = str(SeqIO.read(fasta_path, "fasta").seq)
     return torch.tensor([AA_TO_IDX[aa] for aa in wt_seq], dtype=torch.long)
 
 
@@ -132,16 +112,7 @@ def get_fold_split(cv_df: pd.DataFrame, split_col: str, test_fold: int, *, seed:
     val_labels_z = (val_labels - train_mean) / train_std
     test_labels_z = (test_labels - train_mean) / train_std
 
-    return (
-        train_mut_list,
-        train_labels_z,
-        val_mut_list,
-        val_labels_z,
-        test_mut_list,
-        test_labels_z,
-        train_mean,
-        train_std,
-    )
+    return (train_mut_list, train_labels_z, val_mut_list, val_labels_z, test_mut_list, test_labels_z, train_mean, train_std)
 
 
 def load_features(assay_dir):
@@ -149,14 +120,7 @@ def load_features(assay_dir):
     cerebra_features = torch.load(assay_dir / "embedding_Cerebra_Seq_for_Cerebra_Epistasis.pt", map_location="cpu", weights_only=True)
     wt_idx = read_wt_idx_from_fasta(assay_dir / "wt.fasta")
 
-    return {
-        "embedding": embedding,
-        "wt_idx": wt_idx,
-        "node_embedding": cerebra_features["node_embedding"].float(),
-        "edge_embedding": cerebra_features["edge_embedding"].float().permute(1, 2, 0).contiguous(),
-        "atom14_coords": cerebra_features["atom14_coords"].float(),
-        "atom14_masks": cerebra_features["atom14_masks"].float(),
-    }
+    return {"embedding": embedding, "wt_idx": wt_idx, "node_embedding": cerebra_features["node_embedding"].float(), "edge_embedding": cerebra_features["edge_embedding"].float().permute(1, 2, 0).contiguous(), "atom14_coords": cerebra_features["atom14_coords"].float(), "atom14_masks": cerebra_features["atom14_masks"].float()}
 
 
 def compute_twobody_epistasis_labels(train_df, train_mean, train_std):

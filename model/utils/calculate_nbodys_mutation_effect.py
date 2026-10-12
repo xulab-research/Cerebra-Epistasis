@@ -47,7 +47,7 @@ def build_mutation_table(mutation_lists):
     return pd.DataFrame(data)
 
 
-def df_to_tensor(df, max_mut=10, device="cpu"):
+def df_to_tensor(df, max_mut, device):
     """
     Convert mutation DataFrame to a padded tensor.
     """
@@ -79,7 +79,7 @@ def df_to_tensor(df, max_mut=10, device="cpu"):
     return tensor, mask
 
 
-def calculate_batch_prediction_mlp(single_mut_matrix, mut_name_list, U, mlp_model, max_mut=10, device="cpu", return_epi=False, sqrt_scale=False):
+def calculate_batch_prediction_mlp(single_mut_matrix, mut_name_list, U, mlp_model, max_mut, device, return_epi, sqrt_scale):
     df = build_mutation_table(mut_name_list)
     mutations_tensor, mask = df_to_tensor(df, max_mut=max_mut, device=device)
 
