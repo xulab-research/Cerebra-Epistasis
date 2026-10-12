@@ -209,14 +209,7 @@ def get_basis(r_ij, max_degree, differentiable):
 
             K_Js = torch.stack(K_Js, dim=-1)
 
-            size = (
-                *r_ij.shape[:-1],
-                1,
-                to_order(d_out),
-                1,
-                to_order(d_in),
-                to_order(min(d_in, d_out)),
-            )
+            size = (*r_ij.shape[:-1], 1, to_order(d_out), 1, to_order(d_in), to_order(min(d_in, d_out)))
             basis[f"{d_in},{d_out}"] = K_Js.view(*size)
 
     if not differentiable:

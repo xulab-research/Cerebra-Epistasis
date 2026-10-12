@@ -1,22 +1,13 @@
+import json
 from pathlib import Path
 
-import clize
 import pandas as pd
 import torch
 
 from cerebra_epistasis.model import SE3Transformer
-from utils.calculate_nbodys_mutation_effect import (
-    EpistasisMLP,
-    calculate_batch_prediction_mlp,
-)
+from utils.calculate_nbodys_mutation_effect import EpistasisMLP, calculate_batch_prediction_mlp
 from utils.metrics import spearman_corr
-from utils.utils_func import (
-    compute_twobody_epistasis_labels,
-    load_features,
-    max_mut_from_list,
-    set_seed_everywhere,
-    to_gpu,
-)
+from utils.utils_func import compute_twobody_epistasis_labels, load_features, max_mut_from_list, set_seed_everywhere, to_gpu
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_ROOT = BASE_DIR.parent / "data"
@@ -90,4 +81,6 @@ def main(*, seed: int, epochs: int, lr: float, min_lr: float, adj_dim: int, rank
 
 
 if __name__ == "__main__":
-    clize.run(main)
+    with open("config.json", encoding="utf-8") as file:
+        config = json.load(file)
+    main(**config)

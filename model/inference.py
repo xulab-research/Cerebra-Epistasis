@@ -4,15 +4,8 @@ import pandas as pd
 import torch
 
 from cerebra_epistasis.model import SE3Transformer
-from utils.calculate_nbodys_mutation_effect import (
-    EpistasisMLP,
-    calculate_batch_prediction_mlp,
-)
-from utils.utils_func import (
-    load_features,
-    max_mut_from_list,
-    to_gpu,
-)
+from utils.calculate_nbodys_mutation_effect import EpistasisMLP, calculate_batch_prediction_mlp
+from utils.utils_func import load_features, max_mut_from_list, to_gpu
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_ROOT = BASE_DIR.parent / "data"

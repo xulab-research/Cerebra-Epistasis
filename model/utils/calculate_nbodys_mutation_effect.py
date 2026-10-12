@@ -10,16 +10,7 @@ AA_TO_IDX = {aa: i for i, aa in enumerate(AA_LIST)}
 class EpistasisMLP(torch.nn.Module):
     def __init__(self, input_dim, hidden_dim, dropout):
         super().__init__()
-        self.net = torch.nn.Sequential(
-            torch.nn.Linear(input_dim, hidden_dim),
-            torch.nn.LayerNorm(hidden_dim),
-            torch.nn.GELU(),
-            torch.nn.Dropout(dropout),
-            torch.nn.Linear(hidden_dim, hidden_dim // 2),
-            torch.nn.GELU(),
-            torch.nn.Dropout(dropout),
-            torch.nn.Linear(hidden_dim // 2, 1),
-        )
+        self.net = torch.nn.Sequential(torch.nn.Linear(input_dim, hidden_dim), torch.nn.LayerNorm(hidden_dim), torch.nn.GELU(), torch.nn.Dropout(dropout), torch.nn.Linear(hidden_dim, hidden_dim // 2), torch.nn.GELU(), torch.nn.Dropout(dropout), torch.nn.Linear(hidden_dim // 2, 1))
 
     def forward(self, h_combined):
         return self.net(h_combined).squeeze(-1)

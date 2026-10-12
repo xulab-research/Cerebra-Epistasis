@@ -27,7 +27,6 @@ pip install \
     transformers==5.17.0 \
     einops==0.8.2 \
     filelock==3.29.0 \
-    clize==5.0.2 \
     biopython==1.88 \
     iterative-stratification==0.1.9
 ```
@@ -48,8 +47,9 @@ Cerebra-Epistasis/
 ├── model/                                     # Cerebra-Epistasis model, training, and inference code
 │   ├── cerebra_epistasis/                     # Core model architecture
 │   ├── utils/                                 # Utility functions and helper modules
+│   ├── config.json                            # Training parameters
 │   ├── train.py                               # Model training and checkpoint generation
-│   └── predict.py                             # Model inference using trained checkpoints
+│   └── inference.py                           # Model inference using trained checkpoints
 ├── assets/                                    # Figures and other assets used in the documentation
 ├── LICENSE                                    # Software license
 └── README.md                                  # Project overview, installation, and usage instructions
@@ -104,24 +104,13 @@ data/embedding_Cerebra_Seq_for_Cerebra_Epistasis.pt
 
 Cerebra-Seq is available on [Hugging Face](https://huggingface.co/GongLab-THU/Cerebra-Seq).
 
-### Training and prediction
+### Training and inference
 
-Train the downstream model using the precomputed features and records with `fold_id=0`:
+Training parameters are stored in `model/config.json`, alongside `train.py`. Run training from the `model/` directory so that `train.py` reads `config.json` from the current working directory. It trains the downstream model using the precomputed features and records with `fold_id=0`:
 
 ```bash
 cd ../model
-python train.py \
-    --seed 42 \
-    --epochs 150 \
-    --lr 1e-4 \
-    --min-lr 1e-6 \
-    --adj-dim 32 \
-    --rank-h 64 \
-    --mlp-hidden-dim 256 \
-    --mlp-dropout 0.2 \
-    --huber-delta 1.0 \
-    --clip-grad 2.0 \
-    --lambda-epi 2.0
+python train.py
 ```
 
 Training logs and checkpoints are saved to `model/training_log/`, including `train_log.csv` and `last.pt`.
@@ -129,14 +118,12 @@ Training logs and checkpoints are saved to `model/training_log/`, including `tra
 After training, load the saved checkpoint and predict fitness for records with `fold_id=1`:
 
 ```bash
-python predict.py
+python inference.py
 ```
 
 Predictions are saved to `model/output/predictions.csv`.
 
-Training and prediction can be run independently. Once a checkpoint has been generated, `predict.py` can be executed without retraining the model.
-
-Use `python train.py --help` and `python predict.py --help` to view the available arguments for each script.
+Training and inference can be run independently. Once a checkpoint has been generated, `inference.py` can be executed without retraining the model.
 
 ## Resources
 

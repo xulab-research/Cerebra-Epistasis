@@ -1,0 +1,13 @@
+{
+  "seed": 42,
+  "epochs": 150,
+  "lr": 1e-4,
+  "min_lr": 1e-6,
+  "adj_dim": 32,
+  "rankH": 64,
+  "mlp_hidden_dim": 256,
+  "mlp_dropout": 0.2,
+  "huber_delta": 1.0,
+  "clip_grad": 2.0,
+  "lambda_epi": 2.0
+}
