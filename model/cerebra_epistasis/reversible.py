@@ -78,7 +78,7 @@ class Deterministic(torch.nn.Module):
             self.cuda_in_fwd = True
             self.gpu_devices, self.gpu_states = torch.utils.checkpoint.get_device_states(*args)
 
-    def forward(self, *args, record_rng=False, set_rng=False, **kwargs):
+    def forward(self, *args, record_rng, set_rng, **kwargs):
         if record_rng:
             self.record_rng(*args)
 
@@ -110,8 +110,8 @@ class ReversibleBlock(torch.nn.Module):
         y1, y2 = None, None
 
         with torch.no_grad():
-            y1 = dict_sum(x1, self.f(x2, record_rng=training, **kwargs))
-            y2 = dict_sum(x2, self.g(y1, record_rng=training))
+            y1 = dict_sum(x1, self.f(x2, record_rng=training, set_rng=False, **kwargs))
+            y2 = dict_sum(x2, self.g(y1, record_rng=training, set_rng=False))
 
         return dict_cat(y1, y2, dim=-1)
 
@@ -124,7 +124,7 @@ class ReversibleBlock(torch.nn.Module):
 
         with torch.enable_grad():
             dict_set_(y1, "requires_grad", True)
-            gy1 = self.g(y1, set_rng=True)
+            gy1 = self.g(y1, record_rng=False, set_rng=True)
             dict_backwards_(gy1, dy2)
 
         with torch.no_grad():
@@ -138,7 +138,7 @@ class ReversibleBlock(torch.nn.Module):
 
         with torch.enable_grad():
             dict_set_(x2, "requires_grad", True)
-            fx2 = self.f(x2, set_rng=True, **kwargs)
+            fx2 = self.f(x2, record_rng=False, set_rng=True, **kwargs)
             dict_backwards_(fx2, dx1)
 
         with torch.no_grad():

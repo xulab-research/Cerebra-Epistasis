@@ -110,7 +110,7 @@ Train the downstream model using the precomputed features and records with `fold
 
 ```bash
 cd ../model
-python train.py 
+python train.py \
     --seed 42 \
     --epochs 150 \
     --lr 1e-4 \

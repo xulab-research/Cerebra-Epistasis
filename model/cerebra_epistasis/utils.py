@@ -41,7 +41,7 @@ def cast_tuple(val, depth):
     return val if isinstance(val, tuple) else (val,) * depth
 
 
-def broadcat(tensors, dim=-1):
+def broadcat(tensors, dim):
     num_tensors = len(tensors)
     shape_lens = set(list(map(lambda t: len(t.shape), tensors)))
     assert len(shape_lens) == 1, "tensors must all have the same number of dimensions"
@@ -60,7 +60,7 @@ def broadcat(tensors, dim=-1):
     return torch.cat(tensors, dim=dim)
 
 
-def batched_index_select(values, indices, dim=1):
+def batched_index_select(values, indices, dim):
     value_dims = values.shape[(dim + 1) :]
     values_shape, indices_shape = map(lambda t: list(t.shape), (values, indices))
     indices = indices[(..., *((None,) * len(value_dims)))]
@@ -77,7 +77,7 @@ def batched_index_select(values, indices, dim=1):
     return values.gather(dim, indices)
 
 
-def masked_mean(tensor, mask, dim=-1):
+def masked_mean(tensor, mask, dim):
     diff_len = len(tensor.shape) - len(mask.shape)
     mask = mask[(..., *((None,) * diff_len))]
     tensor.masked_fill_(~mask, 0.0)
@@ -92,7 +92,7 @@ def rand_uniform(size, min_val, max_val):
     return torch.empty(size).uniform_(min_val, max_val)
 
 
-def fast_split(arr, splits, dim=0):
+def fast_split(arr, splits, dim):
     axis_len = arr.shape[dim]
     # axis_len:32, splits:4
     splits = min(axis_len, max(splits, 1))
@@ -106,7 +106,7 @@ def fast_split(arr, splits, dim=0):
         s += chunk_size + adjust
 
 
-def fourier_encode(x, num_encodings=4, include_self=True, flatten=True):
+def fourier_encode(x, num_encodings, include_self, flatten):
     x = x.unsqueeze(-1)
     device, dtype, orig_x = x.device, x.dtype, x
     scales = 2 ** torch.arange(num_encodings, device=device, dtype=dtype)
@@ -173,7 +173,7 @@ def cache(cache, key_fn):
 # cache in directory
 
 
-def cache_dir(dirname, maxsize=128):
+def cache_dir(dirname, maxsize):
     """
     Cache a function with a directory
 
@@ -234,14 +234,14 @@ def cache_dir(dirname, maxsize=128):
     return decorator
 
 
-def rbf_encode(dist, num_rbf=16, rbf_min=0.0, rbf_max=20.0):
+def rbf_encode(dist, num_rbf, rbf_min, rbf_max):
     # dist: [..., 1]
     rbf_centers = torch.linspace(rbf_min, rbf_max, num_rbf, device=dist.device)
     rbf_sigma = (rbf_max - rbf_min) / num_rbf
     return torch.exp(-((dist - rbf_centers) ** 2) / (2 * rbf_sigma**2))
 
 
-def safe_unit(v: torch.Tensor, eps: float = 1e-8) -> torch.Tensor:
+def safe_unit(v: torch.Tensor, eps: float) -> torch.Tensor:
     # v: [..., 3]
     return v / v.norm(dim=-1, keepdim=True).clamp_min(eps)
 

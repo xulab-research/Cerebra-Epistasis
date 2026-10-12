@@ -19,7 +19,7 @@ except:
     Jd = list(map(torch.from_numpy, Jd_np))
 
 
-def wigner_d_matrix(degree, alpha, beta, gamma, dtype=None, device=None):
+def wigner_d_matrix(degree, alpha, beta, gamma, dtype, device):
     """Create wigner D matrices for batch of ZYZ Euler anglers for degree l."""
     J = Jd[degree].type(dtype).to(device)
     order = to_order(degree)
@@ -43,7 +43,7 @@ def z_rot_mat(angle, l):
     return m
 
 
-def irr_repr(order, alpha, beta, gamma, dtype=None):
+def irr_repr(order, alpha, beta, gamma, dtype):
     """
     irreducible representation of SO3
     - compatible with compose and spherical_harmonics
@@ -51,7 +51,7 @@ def irr_repr(order, alpha, beta, gamma, dtype=None):
     cast_ = cast_torch_tensor(lambda t: t)
     dtype = default(dtype, torch.get_default_dtype())
     alpha, beta, gamma = map(cast_, (alpha, beta, gamma))
-    return wigner_d_matrix(order, alpha, beta, gamma, dtype=dtype)
+    return wigner_d_matrix(order, alpha, beta, gamma, dtype=dtype, device=None)
 
 
 @cast_torch_tensor
@@ -59,10 +59,7 @@ def rot_z(gamma):
     """
     Rotation around Z axis
     """
-    return torch.tensor(
-        [[torch.cos(gamma), -torch.sin(gamma), 0], [torch.sin(gamma), torch.cos(gamma), 0], [0, 0, 1]],
-        dtype=gamma.dtype,
-    )
+    return torch.tensor([[torch.cos(gamma), -torch.sin(gamma), 0], [torch.sin(gamma), torch.cos(gamma), 0], [0, 0, 1]], dtype=gamma.dtype)
 
 
 @cast_torch_tensor
@@ -70,10 +67,7 @@ def rot_y(beta):
     """
     Rotation around Y axis
     """
-    return torch.tensor(
-        [[torch.cos(beta), 0, torch.sin(beta)], [0, 1, 0], [-torch.sin(beta), 0, torch.cos(beta)]],
-        dtype=beta.dtype,
-    )
+    return torch.tensor([[torch.cos(beta), 0, torch.sin(beta)], [0, 1, 0], [-torch.sin(beta), 0, torch.cos(beta)]], dtype=beta.dtype)
 
 
 @cast_torch_tensor
@@ -106,5 +100,5 @@ def compose(a1, b1, c1, a2, b2, c2):
     return a, b, c
 
 
-def spherical_harmonics(order, alpha, beta, dtype=None):
+def spherical_harmonics(order, alpha, beta, dtype):
     return get_spherical_harmonics(order, theta=(math.pi - beta), phi=alpha)

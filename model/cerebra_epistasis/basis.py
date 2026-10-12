@@ -33,7 +33,7 @@ def null_context():
 # functions
 
 
-def get_matrix_kernel(A, eps=1e-10):
+def get_matrix_kernel(A, eps):
     """
     Compute an orthonormal basis of the kernel (x_1, x_2, ...)
     A x_i = 0
@@ -47,7 +47,7 @@ def get_matrix_kernel(A, eps=1e-10):
     return kernel
 
 
-def get_matrices_kernel(As, eps=1e-10):
+def get_matrices_kernel(As, eps):
     """
     Computes the common kernel of all the As matrices
     """
@@ -55,7 +55,7 @@ def get_matrices_kernel(As, eps=1e-10):
     return get_matrix_kernel(matrix, eps)
 
 
-def get_spherical_from_cartesian(cartesian, divide_radius_by=1.0):
+def get_spherical_from_cartesian(cartesian, divide_radius_by):
     """
     # ON ANGLE CONVENTION
     #
@@ -111,13 +111,13 @@ def kron(a, b):
 
 
 def get_R_tensor(order_out, order_in, a, b, c):
-    return kron(irr_repr(order_out, a, b, c), irr_repr(order_in, a, b, c))
+    return kron(irr_repr(order_out, a, b, c, dtype=None), irr_repr(order_in, a, b, c, dtype=None))
 
 
 def sylvester_submatrix(order_out, order_in, J, a, b, c):
     """generate Kronecker product matrix for solving the Sylvester equation in subspace J"""
     R_tensor = get_R_tensor(order_out, order_in, a, b, c)  # [m_out * m_in, m_out * m_in]
-    R_irrep_J = irr_repr(J, a, b, c)  # [m, m]
+    R_irrep_J = irr_repr(J, a, b, c, dtype=None)  # [m, m]
 
     R_tensor_identity = torch.eye(R_tensor.shape[0])
     R_irrep_J_identity = torch.eye(R_irrep_J.shape[0])
@@ -125,7 +125,7 @@ def sylvester_submatrix(order_out, order_in, J, a, b, c):
     return kron(R_tensor, R_irrep_J_identity) - kron(R_tensor_identity, R_irrep_J.t())  # [(m_out * m_in) * m, (m_out * m_in) * m]
 
 
-@cache_dir(CACHE_PATH)
+@cache_dir(CACHE_PATH, maxsize=128)
 @torch_default_dtype(torch.float64)
 @torch.no_grad()
 def basis_transformation_Q_J(J, order_in, order_out, random_angles=RANDOM_ANGLES):
@@ -136,7 +136,7 @@ def basis_transformation_Q_J(J, order_in, order_out, random_angles=RANDOM_ANGLES
     :return: one part of the Q^-1 matrix of the article
     """
     sylvester_submatrices = [sylvester_submatrix(order_out, order_in, J, a, b, c) for a, b, c in random_angles]
-    null_space = get_matrices_kernel(sylvester_submatrices)
+    null_space = get_matrices_kernel(sylvester_submatrices, eps=1e-10)
     assert null_space.size(0) == 1, null_space.size()  # unique subspace solution
     Q_J = null_space[0]  # [(m_out * m_in) * m]
     Q_J = Q_J.view(to_order(order_out) * to_order(order_in), to_order(J))  # [m_out * m_in, m]
@@ -154,13 +154,13 @@ def precompute_sh(r_ij, max_J):
 
     i_alpha, i_beta = 1, 2
 
-    Y_Js = {J: spherical_harmonics(J, r_ij[..., i_alpha], r_ij[..., i_beta]) for J in range(max_J + 1)}
+    Y_Js = {J: spherical_harmonics(J, r_ij[..., i_alpha], r_ij[..., i_beta], dtype=None) for J in range(max_J + 1)}
 
     clear_spherical_harmonics_cache()
     return Y_Js
 
 
-def get_basis(r_ij, max_degree, differentiable=False):
+def get_basis(r_ij, max_degree, differentiable):
     """Return equivariant weight basis (basis)
 
     Call this function *once* at the start of each forward pass of the model.
@@ -183,7 +183,7 @@ def get_basis(r_ij, max_degree, differentiable=False):
 
     with context():
         # r_ij.shape: torch.Size([1, 32, 4, 3])
-        r_ij = get_spherical_from_cartesian(r_ij)
+        r_ij = get_spherical_from_cartesian(r_ij, divide_radius_by=1.0)
         # r_ij.shape: torch.Size([1, 32, 4, 3])
 
         # Spherical harmonic basis

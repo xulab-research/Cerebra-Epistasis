@@ -91,7 +91,7 @@ class NormSE3(torch.nn.Module):
 
     NORM_CLAMP = 2**-24  # Minimum positive subnormal for FP16
 
-    def __init__(self, fiber, nonlin=torch.nn.GELU(), use_layernorm=True):
+    def __init__(self, fiber, nonlin, use_layernorm):
         super().__init__()
         self.fiber = fiber
         self.nonlinearity = nonlin
@@ -116,19 +116,7 @@ class NormSE3(torch.nn.Module):
 
 class ConvSE3(torch.nn.Module):
 
-    def __init__(
-        self,
-        fiber_in,
-        fiber_out,
-        self_interaction: bool = True,
-        pool: bool = True,
-        edge_dim: int = 0,
-        fourier_encode_dist: bool = True,
-        num_fourier_features: int = 4,
-        splits: int = 4,
-        *,
-        center_deg1_by_ca: bool = False,
-    ):
+    def __init__(self, fiber_in, fiber_out, self_interaction: bool, pool: bool, edge_dim: int, fourier_encode_dist: bool, num_fourier_features: int, splits: int, *, center_deg1_by_ca: bool):
         super().__init__()
         self.fiber_in = fiber_in
         self.fiber_out = fiber_out
@@ -150,13 +138,13 @@ class ConvSE3(torch.nn.Module):
             self.self_interact = LinearSE3(fiber_in, fiber_out)
             self.self_interact_sum = ResidualSE3()
 
-    def forward(self, inp, edge_info, rel_dist=None, basis=None, atom14_masks=None):
+    def forward(self, inp, edge_info, rel_dist, basis, atom14_masks):
         neighbor_indices, neighbor_masks, edges = edge_info
         outputs = {}
 
         rel_dist = rearrange(rel_dist, "b m n -> b m n ()")
         if self.fourier_encode_dist:
-            rel_dist = fourier_encode(rel_dist, num_encodings=self.num_fourier_features)
+            rel_dist = fourier_encode(rel_dist, num_encodings=self.num_fourier_features, include_self=True, flatten=True)
 
         basis_keys = basis.keys()
         split_basis_values = list(zip(*[fast_split(t, self.splits, dim=1) for t in basis.values()]))
@@ -229,14 +217,7 @@ class ConvSE3(torch.nn.Module):
 
 
 class RadialFunc(torch.nn.Module):
-    def __init__(
-        self,
-        num_freq,
-        in_dim,
-        out_dim,
-        edge_dim=None,
-        mid_dim=128,
-    ):
+    def __init__(self, num_freq, in_dim, out_dim, edge_dim, mid_dim):
         super().__init__()
         self.num_freq = num_freq
         self.in_dim = in_dim
@@ -250,7 +231,7 @@ class RadialFunc(torch.nn.Module):
             torch.nn.Linear(mid_dim, mid_dim),
             torch.nn.LayerNorm(mid_dim),
             torch.nn.GELU(),
-            torch.nn.Linear(mid_dim, num_freq * in_dim * out_dim),
+            torch.nn.Linear(mid_dim, num_freq * in_dim * out_dim)
         )
 
     def forward(self, x):
@@ -259,15 +240,7 @@ class RadialFunc(torch.nn.Module):
 
 
 class PairwiseConv(torch.nn.Module):
-    def __init__(
-        self,
-        degree_in,
-        nc_in,
-        degree_out,
-        nc_out,
-        edge_dim=0,
-        splits=4,
-    ):
+    def __init__(self, degree_in, nc_in, degree_out, nc_out, edge_dim, splits):
         super().__init__()
         self.degree_in = degree_in
         self.degree_out = degree_out
@@ -276,7 +249,7 @@ class PairwiseConv(torch.nn.Module):
         self.num_freq = to_order(min(degree_in, degree_out))
         self.d_out = to_order(degree_out)
         self.edge_dim = edge_dim
-        self.rp = RadialFunc(self.num_freq, nc_in, nc_out, edge_dim)
+        self.rp = RadialFunc(self.num_freq, nc_in, nc_out, edge_dim, mid_dim=128)
         self.splits = splits
 
     def forward(self, feat, basis):
@@ -291,7 +264,7 @@ class PairwiseConv(torch.nn.Module):
 
 
 class FeedForwardSE3(torch.nn.Module):
-    def __init__(self, fiber, mult=4):
+    def __init__(self, fiber, mult):
         super().__init__()
         self.fiber = fiber
         fiber_hidden = Fiber(list(map(lambda t: (t[0], t[1] * mult), fiber)))
@@ -311,7 +284,7 @@ class FeedForwardBlockSE3(torch.nn.Module):
         super().__init__()
         self.fiber = fiber
         self.prenorm = NormSE3(fiber, nonlin=torch.nn.Identity(), use_layernorm=True)
-        self.feedforward = FeedForwardSE3(fiber)
+        self.feedforward = FeedForwardSE3(fiber, mult=4)
         self.residual = ResidualSE3()
 
     def forward(self, features):
@@ -322,17 +295,7 @@ class FeedForwardBlockSE3(torch.nn.Module):
 
 
 class AttentionSE3(torch.nn.Module):
-    def __init__(
-        self,
-        fiber,
-        dim_head=64,
-        heads=8,
-        attend_self=False,
-        edge_dim=None,
-        fourier_encode_dist=False,
-        rel_dist_num_fourier_features=4,
-        splits=4,
-    ):
+    def __init__(self, fiber, dim_head, heads, attend_self, edge_dim, fourier_encode_dist, rel_dist_num_fourier_features, splits):
         super().__init__()
         hidden_dim = dim_head * heads
         hidden_fiber = Fiber(list(map(lambda t: (t[0], hidden_dim), fiber)))
@@ -341,26 +304,8 @@ class AttentionSE3(torch.nn.Module):
         self.scale = dim_head**-0.5
         self.heads = heads
         self.to_q = LinearSE3(fiber, hidden_fiber)
-        self.to_v = ConvSE3(
-            fiber,
-            hidden_fiber,
-            edge_dim=edge_dim,
-            pool=False,
-            self_interaction=False,
-            fourier_encode_dist=fourier_encode_dist,
-            num_fourier_features=rel_dist_num_fourier_features,
-            splits=splits,
-        )
-        self.to_k = ConvSE3(
-            fiber,
-            hidden_fiber,
-            edge_dim=edge_dim,
-            pool=False,
-            self_interaction=False,
-            fourier_encode_dist=fourier_encode_dist,
-            num_fourier_features=rel_dist_num_fourier_features,
-            splits=splits,
-        )
+        self.to_v = ConvSE3(fiber, hidden_fiber, edge_dim=edge_dim, pool=False, self_interaction=False, fourier_encode_dist=fourier_encode_dist, num_fourier_features=rel_dist_num_fourier_features, splits=splits, center_deg1_by_ca=False)
+        self.to_k = ConvSE3(fiber, hidden_fiber, edge_dim=edge_dim, pool=False, self_interaction=False, fourier_encode_dist=fourier_encode_dist, num_fourier_features=rel_dist_num_fourier_features, splits=splits, center_deg1_by_ca=False)
 
         self.to_out = LinearSE3(hidden_fiber, fiber) if project_out else torch.nn.Identity()
         self.attend_self = attend_self
@@ -376,19 +321,19 @@ class AttentionSE3(torch.nn.Module):
                 torch.nn.LayerNorm(edge_dim),
                 torch.nn.Linear(edge_dim, edge_dim),
                 torch.nn.GELU(),
-                torch.nn.Linear(edge_dim, heads),  # -> per-head bias
+                torch.nn.Linear(edge_dim, heads)  # -> per-head bias
             )
             # start from 0 so behavior initially == old model
             self.edge_attn_scale = torch.nn.Parameter(torch.tensor(0.0))
 
-    def forward(self, features, edge_info, rel_dist, basis, pos_emb=None):
+    def forward(self, features, edge_info, rel_dist, basis, pos_emb):
         h, attend_self = self.heads, self.attend_self
         neighbor_indices, neighbor_mask, edges = edge_info
         if exists(neighbor_mask):
             neighbor_mask = rearrange(neighbor_mask, "b i j -> b () i j")
         queries = self.to_q(features)
-        values = self.to_v(features, edge_info, rel_dist, basis)
-        keys = self.to_k(features, edge_info, rel_dist, basis)
+        values = self.to_v(features, edge_info, rel_dist, basis, atom14_masks=None)
+        keys = self.to_k(features, edge_info, rel_dist, basis, atom14_masks=None)
         if attend_self:
             self_keys, self_values = self.to_self_k(features), self.to_self_v(features)
         outputs = {}
@@ -398,10 +343,7 @@ class AttentionSE3(torch.nn.Module):
             k, v = map(lambda t: rearrange(t, "b i j (h d) m -> b h i j d m", h=h), (k, v))
             if attend_self:
                 self_k, self_v = map(lambda t: t[degree], (self_keys, self_values))
-                self_k, self_v = map(
-                    lambda t: rearrange(t, "b n (h d) m -> b h n () d m", h=h),
-                    (self_k, self_v),
-                )
+                self_k, self_v = map(lambda t: rearrange(t, "b n (h d) m -> b h n () d m", h=h), (self_k, self_v))
                 k = torch.cat((self_k, k), dim=3)
                 v = torch.cat((self_v, v), dim=3)
             sim = torch.einsum("b h i d m, b h i j d m -> b h i j", q, k) * self.scale
@@ -428,33 +370,14 @@ class AttentionSE3(torch.nn.Module):
 
 
 class AttentionBlockSE3(torch.nn.Module):
-    def __init__(
-        self,
-        fiber,
-        dim_head=24,
-        heads=8,
-        attend_self=False,
-        edge_dim=None,
-        fourier_encode_dist=False,
-        rel_dist_num_fourier_features=4,
-        splits=4,
-    ):
+    def __init__(self, fiber, dim_head, heads, attend_self, edge_dim, fourier_encode_dist, rel_dist_num_fourier_features, splits):
         super().__init__()
-        self.attn = AttentionSE3(
-            fiber,
-            heads=heads,
-            dim_head=dim_head,
-            attend_self=attend_self,
-            edge_dim=edge_dim,
-            rel_dist_num_fourier_features=rel_dist_num_fourier_features,
-            fourier_encode_dist=fourier_encode_dist,
-            splits=splits,
-        )
+        self.attn = AttentionSE3(fiber, heads=heads, dim_head=dim_head, attend_self=attend_self, edge_dim=edge_dim, rel_dist_num_fourier_features=rel_dist_num_fourier_features, fourier_encode_dist=fourier_encode_dist, splits=splits)
         self.prenorm = NormSE3(fiber, nonlin=torch.nn.GELU(), use_layernorm=True)
         self.residual = ResidualSE3()
         self.last_attn = None
 
-    def forward(self, features, edge_info, rel_dist, basis, global_feats=None, pos_emb=None):
+    def forward(self, features, edge_info, rel_dist, basis, global_feats, pos_emb):
         res = features
         outputs = self.prenorm(features)
         outputs, attn = self.attn(outputs, edge_info, rel_dist, basis, pos_emb)
@@ -463,28 +386,7 @@ class AttentionBlockSE3(torch.nn.Module):
 
 
 class SE3Transformer(torch.nn.Module):
-    def __init__(
-        self,
-        *,
-        heads,
-        dim_head,
-        depth,
-        input_degrees,
-        num_degrees,
-        attend_self,
-        differentiable_coors,
-        fourier_encode_dist,
-        rel_dist_num_fourier_features,
-        adj_dim,
-        dim_in,
-        splits,
-        hidden_fiber_dict,
-        out_fiber_dict,
-        rankH,
-        geo_neighbor,
-        epi_neighbor,
-        esm_dropout,
-    ):
+    def __init__(self, *, heads, dim_head, depth, input_degrees, num_degrees, attend_self, differentiable_coors, fourier_encode_dist, rel_dist_num_fourier_features, adj_dim, dim_in, splits, hidden_fiber_dict, out_fiber_dict, rankH, geo_neighbor, epi_neighbor, esm_dropout):
         super().__init__()
         self.dim_in = dim_in
         self.input_degrees = input_degrees
@@ -503,22 +405,11 @@ class SE3Transformer(torch.nn.Module):
 
         fiber_out = Fiber(out_fiber_dict)
 
-        conv_in_kwargs = dict(
-            edge_dim=self.edge_dim,
-            fourier_encode_dist=fourier_encode_dist,
-            num_fourier_features=rel_dist_num_fourier_features,
-            splits=splits,
-            center_deg1_by_ca=True,
-        )
+        conv_in_kwargs = dict(edge_dim=self.edge_dim, fourier_encode_dist=fourier_encode_dist, num_fourier_features=rel_dist_num_fourier_features, splits=splits, center_deg1_by_ca=True)
 
-        conv_out_kwargs = dict(
-            edge_dim=self.edge_dim,
-            fourier_encode_dist=fourier_encode_dist,
-            num_fourier_features=rel_dist_num_fourier_features,
-            splits=splits,
-        )
+        conv_out_kwargs = dict(edge_dim=self.edge_dim, fourier_encode_dist=fourier_encode_dist, num_fourier_features=rel_dist_num_fourier_features, splits=splits)
 
-        self.conv_in = ConvSE3(fiber_in, fiber_hidden, **conv_in_kwargs)
+        self.conv_in = ConvSE3(fiber_in, fiber_hidden, self_interaction=True, pool=True, **conv_in_kwargs)
 
         self.attend_self = attend_self
         layers = torch.nn.ModuleList([])
@@ -526,35 +417,26 @@ class SE3Transformer(torch.nn.Module):
             layers.append(
                 torch.nn.ModuleList(
                     [
-                        AttentionBlockSE3(
-                            fiber_hidden,
-                            heads=heads,
-                            dim_head=dim_head,
-                            attend_self=attend_self,
-                            edge_dim=self.edge_dim,
-                            fourier_encode_dist=fourier_encode_dist,
-                            rel_dist_num_fourier_features=rel_dist_num_fourier_features,
-                            splits=splits,
-                        ),
-                        FeedForwardBlockSE3(fiber_hidden),
+                        AttentionBlockSE3(fiber_hidden, heads=heads, dim_head=dim_head, attend_self=attend_self, edge_dim=self.edge_dim, fourier_encode_dist=fourier_encode_dist, rel_dist_num_fourier_features=rel_dist_num_fourier_features, splits=splits),
+                        FeedForwardBlockSE3(fiber_hidden)
                     ]
                 )
             )
         self.net = SequentialSequence(layers)
-        self.conv_out = ConvSE3(fiber_hidden, fiber_out, **conv_out_kwargs)
+        self.conv_out = ConvSE3(fiber_hidden, fiber_out, self_interaction=True, pool=True, center_deg1_by_ca=False, **conv_out_kwargs)
 
         self.linear_out = torch.nn.Sequential(
             torch.nn.LayerNorm(128),
             torch.nn.Linear(128, 64),
             torch.nn.LeakyReLU(),
-            torch.nn.Linear(64, 20),
+            torch.nn.Linear(64, 20)
         )
 
         self.edge_proj = torch.nn.Sequential(
             # torch.nn.LayerNorm(128),
             torch.nn.Linear(128, 200),
             torch.nn.GELU(),
-            torch.nn.Linear(200, self.edge_dim),
+            torch.nn.Linear(200, self.edge_dim)
         )
 
         self.rankH = rankH
@@ -562,7 +444,7 @@ class SE3Transformer(torch.nn.Module):
         self.high_in = torch.nn.Sequential(
             torch.nn.LayerNorm(128 + out_fiber_dict[1] + 2),  # 128+32+2
             torch.nn.Linear(128 + out_fiber_dict[1] + 2, 128),
-            torch.nn.GELU(),
+            torch.nn.GELU()
         )
         self.high_mlp = torch.nn.Sequential(
             torch.nn.LayerNorm(128),
@@ -570,7 +452,7 @@ class SE3Transformer(torch.nn.Module):
             torch.nn.GELU(),
             torch.nn.Linear(256, 128),
             torch.nn.GELU(),
-            torch.nn.Linear(128, self.rankH),
+            torch.nn.Linear(128, self.rankH)
         )
 
         self.u_mix = torch.nn.Linear(self.rankH, self.rankH, bias=False)
@@ -584,7 +466,7 @@ class SE3Transformer(torch.nn.Module):
             torch.nn.LeakyReLU(),
             torch.nn.Linear(640, 320),
             torch.nn.LeakyReLU(),
-            torch.nn.Linear(320, 20),
+            torch.nn.Linear(320, 20)
         )
         self.beta = torch.nn.Parameter(torch.tensor(0.1))
 
@@ -593,7 +475,7 @@ class SE3Transformer(torch.nn.Module):
             torch.nn.Linear(256, 320),
             torch.nn.LeakyReLU(),
             torch.nn.Linear(320, 320),
-            torch.nn.LayerNorm(320),
+            torch.nn.LayerNorm(320)
         )
 
     def forward(self, data):
@@ -681,17 +563,11 @@ class SE3Transformer(torch.nn.Module):
         edge_info = (neighbor_indices, neighbor_mask, edges)
         x = feats
 
-        x = self.conv_in(
-            x,
-            edge_info,
-            rel_dist=neighbor_rel_dist,
-            basis=basis,
-            atom14_masks=atom14_masks,
-        )
+        x = self.conv_in(x, edge_info, rel_dist=neighbor_rel_dist, basis=basis, atom14_masks=atom14_masks)
 
-        x = self.net(x, edge_info=edge_info, rel_dist=neighbor_rel_dist, basis=basis)
+        x = self.net(x, edge_info=edge_info, rel_dist=neighbor_rel_dist, basis=basis, global_feats=None, pos_emb=None)
 
-        x = self.conv_out(x, edge_info, rel_dist=neighbor_rel_dist, basis=basis)
+        x = self.conv_out(x, edge_info, rel_dist=neighbor_rel_dist, basis=basis, atom14_masks=None)
 
         z = x["0"].squeeze(dim=-1).squeeze(0)  # [L,128]
 

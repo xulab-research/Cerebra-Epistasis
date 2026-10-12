@@ -131,7 +131,4 @@ def get_spherical_harmonics(l, theta, phi):
 
     # theta.shape:torch.Size([1, 32, 4])
     # phi.shape:torch.Size([1, 32, 4])
-    return torch.stack(
-        [get_spherical_harmonics_element(l, m, theta, phi) for m in range(-l, l + 1)],
-        dim=-1,
-    )
+    return torch.stack([get_spherical_harmonics_element(l, m, theta, phi) for m in range(-l, l + 1)], dim=-1)
