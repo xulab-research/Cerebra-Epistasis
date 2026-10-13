@@ -31,56 +31,64 @@ def load_data(data_root, device):
     return {"data": data, "train_df": train_df, "train_y": train_y, "epi_indices": torch.as_tensor(epi_indices, dtype=torch.long, device=device), "epi_y": torch.as_tensor(epi_labels, dtype=torch.float32, device=device), "max_mut": max_mut_from_list(df["mutation_name"].tolist()), "geo_neighbor": geo_neighbor, "epi_neighbor": epi_neighbor, "mean": mean, "std": std}
 
 
-def main(*, seed: int, epochs: int, lr: float, min_lr: float, adj_dim: int, rankH: int, mlp_hidden_dim: int, mlp_dropout: float, huber_delta: float, clip_grad: float, lambda_epi: float):
-    device = torch.device("cuda")
-    unit = load_data(DATA_ROOT, device)
-    set_seed_everywhere(seed)
+with open("config.json", encoding="utf-8") as file:
+    config = json.load(file)
 
-    model_config = {"heads": 4, "dim_head": 64, "depth": 1, "input_degrees": 2, "num_degrees": 2, "attend_self": True, "differentiable_coors": False, "fourier_encode_dist": True, "rel_dist_num_fourier_features": 4, "adj_dim": adj_dim, "dim_in": (320, 14), "splits": 4, "hidden_fiber_dict": {0: 320, 1: 32}, "out_fiber_dict": {0: 128, 1: 32}, "rankH": rankH, "geo_neighbor": unit["geo_neighbor"], "epi_neighbor": unit["epi_neighbor"], "esm_dropout": 0.3}
-    mlp_config = {"input_dim": rankH, "hidden_dim": mlp_hidden_dim, "dropout": mlp_dropout}
+seed = config["seed"]
+epochs = config["epochs"]
+lr = config["lr"]
+min_lr = config["min_lr"]
+adj_dim = config["adj_dim"]
+rankH = config["rankH"]
+mlp_hidden_dim = config["mlp_hidden_dim"]
+mlp_dropout = config["mlp_dropout"]
+huber_delta = config["huber_delta"]
+clip_grad = config["clip_grad"]
+lambda_epi = config["lambda_epi"]
 
-    model = SE3Transformer(**model_config).cuda()
-    mlp = EpistasisMLP(**mlp_config).cuda()
+device = torch.device("cuda")
+unit = load_data(DATA_ROOT, device)
+set_seed_everywhere(seed)
 
-    parameters = list(model.parameters()) + list(mlp.parameters())
-    optimizer = torch.optim.Adam(parameters, lr=lr, eps=1e-6)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=min_lr)
-    mut_list = unit["train_df"]["mutation_name"].tolist()
-    logs = []
+model_config = {"heads": 4, "dim_head": 64, "depth": 1, "input_degrees": 2, "num_degrees": 2, "attend_self": True, "differentiable_coors": False, "fourier_encode_dist": True, "rel_dist_num_fourier_features": 4, "adj_dim": adj_dim, "dim_in": (320, 14), "splits": 4, "hidden_fiber_dict": {0: 320, 1: 32}, "out_fiber_dict": {0: 128, 1: 32}, "rankH": rankH, "geo_neighbor": unit["geo_neighbor"], "epi_neighbor": unit["epi_neighbor"], "esm_dropout": 0.3}
+mlp_config = {"input_dim": rankH, "hidden_dim": mlp_hidden_dim, "dropout": mlp_dropout}
 
-    model.train()
-    mlp.train()
+model = SE3Transformer(**model_config).cuda()
+mlp = EpistasisMLP(**mlp_config).cuda()
 
-    for epoch in range(epochs):
-        optimizer.zero_grad(set_to_none=True)
+parameters = list(model.parameters()) + list(mlp.parameters())
+optimizer = torch.optim.Adam(parameters, lr=lr, eps=1e-6)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=min_lr)
+mut_list = unit["train_df"]["mutation_name"].tolist()
+logs = []
 
-        single_pred, high_delta = model(unit["data"])
-        preds, pred_epi = calculate_batch_prediction_mlp(single_mut_matrix=single_pred, mut_name_list=mut_list, U=high_delta, mlp_model=mlp, max_mut=unit["max_mut"], device=device, return_epi=True, sqrt_scale=True)
+model.train()
+mlp.train()
 
-        fitness_loss = torch.nn.functional.smooth_l1_loss(preds, unit["train_y"], beta=huber_delta)
-        epi_loss = fitness_loss.new_zeros(())
-        if lambda_epi > 0 and unit["epi_indices"].numel() > 0:
-            epi_loss = torch.nn.functional.smooth_l1_loss(pred_epi[unit["epi_indices"]], unit["epi_y"], beta=huber_delta)
+for epoch in range(epochs):
+    optimizer.zero_grad(set_to_none=True)
 
-        loss = fitness_loss + lambda_epi * epi_loss
-        loss.backward()
-        torch.nn.utils.clip_grad_norm_(parameters, clip_grad)
-        optimizer.step()
+    single_pred, high_delta = model(unit["data"])
+    preds, pred_epi = calculate_batch_prediction_mlp(single_mut_matrix=single_pred, mut_name_list=mut_list, U=high_delta, mlp_model=mlp, max_mut=unit["max_mut"], device=device, return_epi=True, sqrt_scale=True)
 
-        train_spearman = spearman_corr(preds.detach(), unit["train_y"]).item()
+    fitness_loss = torch.nn.functional.smooth_l1_loss(preds, unit["train_y"], beta=huber_delta)
+    epi_loss = fitness_loss.new_zeros(())
+    if lambda_epi > 0 and unit["epi_indices"].numel() > 0:
+        epi_loss = torch.nn.functional.smooth_l1_loss(pred_epi[unit["epi_indices"]], unit["epi_y"], beta=huber_delta)
 
-        logs.append({"epoch": epoch, "lr": optimizer.param_groups[0]["lr"], "train_total_loss": loss.item(), "train_fitness_loss": fitness_loss.item(), "train_epi_loss": epi_loss.item(), "train_spearman": train_spearman})
-        print(f"[epoch {epoch:03d}] loss={loss.item():.6f} train_spearman={train_spearman:.6f}")
+    loss = fitness_loss + lambda_epi * epi_loss
+    loss.backward()
+    torch.nn.utils.clip_grad_norm_(parameters, clip_grad)
+    optimizer.step()
 
-        scheduler.step()
+    train_spearman = spearman_corr(preds.detach(), unit["train_y"]).item()
 
-    TRAIN_LOG_DIR.mkdir(parents=True, exist_ok=True)
-    pd.DataFrame(logs).to_csv(TRAIN_LOG_DIR / "train_log.csv", index=False)
+    logs.append({"epoch": epoch, "lr": optimizer.param_groups[0]["lr"], "train_total_loss": loss.item(), "train_fitness_loss": fitness_loss.item(), "train_epi_loss": epi_loss.item(), "train_spearman": train_spearman})
+    print(f"[epoch {epoch:03d}] loss={loss.item():.6f} train_spearman={train_spearman:.6f}")
 
-    torch.save({"epoch": epochs - 1, "model_state": {k: v.cpu() for k, v in model.state_dict().items()}, "mlp_state": {k: v.cpu() for k, v in mlp.state_dict().items()}, "model_config": model_config, "mlp_config": mlp_config, "train_mean": unit["mean"], "train_denom": unit["std"], "n_train_epi": unit["epi_indices"].numel()}, TRAIN_LOG_DIR / "last.pt")
+    scheduler.step()
 
+TRAIN_LOG_DIR.mkdir(parents=True, exist_ok=True)
+pd.DataFrame(logs).to_csv(TRAIN_LOG_DIR / "train_log.csv", index=False)
 
-if __name__ == "__main__":
-    with open("config.json", encoding="utf-8") as file:
-        config = json.load(file)
-    main(**config)
+torch.save({"epoch": epochs - 1, "model_state": {k: v.cpu() for k, v in model.state_dict().items()}, "mlp_state": {k: v.cpu() for k, v in mlp.state_dict().items()}, "model_config": model_config, "mlp_config": mlp_config, "train_mean": unit["mean"], "train_denom": unit["std"], "n_train_epi": unit["epi_indices"].numel()}, TRAIN_LOG_DIR / "last.pt")
